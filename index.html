@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+		<meta name="author" content="joje.attrs@gmail.com">
+		
+		<title>DOM Practice</title>
+
+		<script type="text/javascript" src="src/jojequery.js"></script>
+		
+		<script type="text/javascript">
+		//<![CDATA[
+		
+			$.ready(function(e) {
+				/*console.log('DOM Ready!');
+				
+				var el = $('#content');
+				console.log('el', el);
+				console.log('el instanceof $', (el instanceof $));
+				
+				// attr
+				console.log('\n\n - attr');
+				
+				$('.gnb').id('gnb');
+				console.log($('.gnb').attr());
+				
+				$('#content').attr('name1', 'value1');
+				console.log($('#content').attr());
+				
+				$('#content').attr({
+					'name2': 'value2',
+					'name3': 'value3'
+				});
+				console.log($('#content').attr());
+				
+				$('#content').attr({
+					'name2': '',
+					'name3': false
+				});
+				console.log($('#content').attr());
+				
+				// style
+				console.log('\n\n - style');
+				$('#content').style('border', '1px solid black');
+				$('#content').style({
+					'font-size': '9px',
+					'font-weight': 'bold'
+				});
+				console.log('style', $('#content').style('border'));
+				console.log('style', $('#content').style('font-size'));
+				console.log('style', $('#content').style('font-weight'));
+				$('#content').style({
+					'font-size': '',
+					'font-weight': false
+				});
+				console.log('style', $('#content').style('border'));
+				console.log('style', $('#content').style('font-size'));
+				console.log('style', $('#content').style('font-weight'));
+				
+				// data
+				console.log('\n\n - data');
+				$('#content').data('key', 'value');
+				$('#content').data({
+					'key2': '2',
+					'key3': '3'
+				});
+				console.log('data(key)', $('#content').data('key'));
+				console.log('data', $('#content').data());
+				
+				// arg
+				console.log('\n\n - arg');
+				$('#content').arg('joje');
+				console.log('arg', $('#content').arg());
+				
+				// event
+				console.log('\n\n - event');
+				$('#content').on('click', function(e) {
+					console.log(e.type);
+					$(this).off('click', arguments.callee);
+				});
+				
+				// html & text
+				console.log('\n\n - html & text');
+				console.log('html', $('#content').html());
+				console.log('outer', $('#content').outer());
+				console.log('text', $('#content').text());
+				
+				$('#content').html('<a href="#">html</a>');
+				console.log('html', $('#content').html());
+				
+				$('#content').text('<a href="#">text</a>');
+				console.log('text', $('#content').text());
+				
+				$('#content').outer('<div id="content" class="recreated">outer</div>');
+				console.log('outer', $('#content').outer());
+				
+				// clear
+				console.log('\n\n - clear');
+				var els = $('div');
+				console.log('div', els);
+				console.log('clear', els.clear());
+				
+				
+				// global select
+				console.log('\n\n - global selection');	
+				console.log('#content', $('#content'));
+				console.log('.gnb', $('.gnb'));
+				console.log('div > a', $('div > a'));
+				
+				// sub select
+				console.log('\n\n - sub selection');
+				console.log("$('#gnb').all()", $('#gnb').all());
+				console.log("$('#gnb').one()", $('#gnb').one());
+				console.log("$('div').all()", $('div').all());
+				console.log("$('div').one()", $('div').one());
+				
+				// clone
+				console.log('\n\n - clone');
+				var cloned = $('#gnb').all().clone();
+				console.log('cloned', cloned)
+				
+				// create
+				var item = $('#content').create('div.items');
+				var items = $('#content').create('div.items', [1,2,3,4,5]);
+				var items = $('#content').create('div.items', [1,2,3,4,5], function(el) {return el;});
+				
+				
+				
+				// insert
+				$('#content').append($('#gnb').all());
+				$('#gnb').all().appendTo($('#content'));
+				$('#gnb').all().appendTo('#content');
+				$('#gnb').all().filter(function() {
+					return true;
+				}).appendTo('#content', 0);
+				
+				
+				
+				// total
+				var items = $('#content')
+				.create('div.items', [1,2,3,4,5])
+				.attr('value', function(d) {
+					return 'item-' + d;
+				})
+				.style('color', function(d) {
+					return 0xffffff / d;
+				});
+				*/
+				
+				var items = $('div.slot').create('div.item', [1,2,3,4,5]).html(function(d) { return 'created-' + d; });
+				console.log(items);
+			});
+		//]]>
+		</script>
+	</head>
+	<body>
+		<div id="header">	
+			<a id="logo" href="#">&nbsp;</a>
+			
+			<div class="gnb">
+				<a name="about" type="text" class="embos" href="#about">ABOUT</a>
+				<a name="guides" type="text" class="embos" href="#guides">GUIDES</a>
+				<a name="api" type="text" class="embos" href="#api">API</a>
+				<a name="examples" type="text" class="embos" href="#examples">EXAMPLES</a>
+				<a name="download" type="text" class="embos" href="#download">DOWNLOAD</a>
+				<a name="community" type="text" class="embos" href="#community">COMMUNITY</a>
+			</div>
+			
+			<div id="tbar"></div>
+			
+	        <div id="repository">
+				<a type="icon+text" icon="icons.fork" style="icon-size:20px;text-size:12px;" href="https://github.com/attrs/attrs.ui.js" target="_blank">GitHub</a>
+	        </div>
+		</div>
+		<div id="center">
+			<div id="side">
+			</div>
+			<div id="content">
+				content!
+				<div class="slot"></div>
+				<div class="slot"></div>
+			</div>
+			<div id="rside">
+			</div>
+		</div>
+		<div id="footer">
+			<div id="footer-wrapper">
+				<div class="info">
+					Copyright 2014 <a href="http://attrs.io">Team Attrs.</a><br>
+				</div>
+				<div class="links">
+					<a class="twitter" href="http://twitter.com/jojejoje6">
+						<i class="icon-twitter"></i><span>Twitter</span>
+					</a>
+					<a class="github" href="https://github.com/joje6">
+						<i class="icon-github"></i><span>GitHub</span>
+					</a>
+				</div>
+			</div>
+	    </div>
+	</body>
+</html>
+
