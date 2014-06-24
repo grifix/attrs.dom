@@ -14,7 +14,7 @@
 		//<![CDATA[
 		
 			$.ready(function(e) {
-				/*console.log('DOM Ready!');
+				console.log('DOM Ready!');
 				
 				var el = $('#content');
 				console.log('el', el);
@@ -147,9 +147,12 @@
 				.style('color', function(d) {
 					return 0xffffff / d;
 				});
-				*/
 				
-				var items = $('div.slot').create('div.item', [1,2,3,4,5]).html(function(d) { return 'created-' + d; });
+				var items = $('div.slot').create('div.item', [1,2,3,4,5])
+				.html(function(d) { return 'created-' + d; })
+				.create('div.item', ['a','b','c'])
+				.out().style('background', 'silver');
+				
 				console.log(items);
 			});
 		//]]>
@@ -179,10 +182,10 @@
 			</div>
 			<div id="content">
 				content!
-				<div class="slot"></div>
-				<div class="slot"></div>
 			</div>
 			<div id="rside">
+				<div class="slot"></div>
+				<div class="slot"></div>
 			</div>
 		</div>
 		<div id="footer">

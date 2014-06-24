@@ -1,19 +1,20 @@
 var $ = (function() {
 	"use strict";
 	
-	function Selector(selector, criteria, single) {
-		this.length = 0;		
-		this.renew.apply(this, arguments);
+	function Selector(selector, criteria, single, context) {
+		this.length = 0;
+		if( context ) this.context(context);
+		this.refresh.apply(this, arguments);
 	}
 	
 	var __root__ = {};
-	function DOM(selector, criteria, single) {
-		if( selector !== __root__ ) return new Selector(selector, criteria, single);
+	function DOM(selector, criteria, single, context) {
+		if( selector !== __root__ ) return new Selector(selector, criteria, single, context);
 	}
 	
 	DOM.prototype = new Array();
 	var prototype = Selector.prototype = new DOM(__root__);
-		
+	
 	DOM.ready = function ready(fn) {
 		window.addEventListener('DOMContentLoaded', fn);
 		return this;
@@ -26,22 +27,18 @@ var $ = (function() {
 	
 	DOM.fn = prototype;
 	
-	return DOM;
-})();
-
-
-// setup core functions
-(function($) {
-	"use strict";
+	var $ = DOM;
 	
-	var fn = $.fn;
-	
-	// common functions
-	function isElement(el) {
-		if( typeof(el) !== 'object' ) return false;
-		else if( !(window.attachEvent && !window.opera) ) return (el instanceof window.Element);
-		else return (el.nodeType == 1 && el.tagName);
-	};
+	function merge(o) {
+		if( typeof(o.length) === 'number' ) {
+			for(var i=0; i < o.length; i++) {
+				this.push(o[i]);
+			}
+		} else {
+			this.push(o);
+		}
+		return this;
+	}
 	
 	function data(key, value) {
 		if( !arguments.length ) return this.__alien__;
@@ -57,6 +54,13 @@ var $ = (function() {
 			} catch(e) {}
 		}
 	}
+	
+	// common functions
+	function isElement(el) {
+		if( typeof(el) !== 'object' ) return false;
+		else if( !(window.attachEvent && !window.opera) ) return (el instanceof window.Element);
+		else return (el.nodeType == 1 && el.tagName);
+	};
 	
 	function create(selector, html) {
 		if( !selector || typeof(selector) !== 'string' ) return console.error('invalid parameter', selector);
@@ -82,17 +86,6 @@ var $ = (function() {
 		return el;
 	};
 	
-	function merge(o) {
-		if( typeof(o.length) === 'number' ) {
-			for(var i=0; i < o.length; i++) {
-				this.push(o[i]);
-			}
-		} else {
-			this.push(o);
-		}
-		return this;
-	}
-	
 	function accessor(el) {
 		var tag = el.tagName.toLowerCase();
 		var id = el.id;
@@ -112,35 +105,34 @@ var $ = (function() {
 	function resolve(value) {
 		if( typeof(value) !== 'function' ) return value;
 		return value.call(this, data.call(this, 'arg'));
-	};
-	
-	function processing(fnname, value) {
-		if( arguments.length <= 1 ) {
-			var arr = [];
-			this.each(function() {
-				arr.push(this[fnname]);
-			});
-			return array_return(arr);
-		}
-		
-		value = value || '';		
-		return this.each(function() {			
-			var v = resolve.call(this, value);
-			this[fnname] = v;
-		});
 	}
 	
-	// core functions
-	fn.merge = merge;
+	$.util = {
+		data: data,
+		isElement: isElement,
+		create: create,
+		accessor: accessor,
+		array_return: array_return,
+		resolve: resolve
+	};
 	
-	fn.renew = function(selector, criteria, single) {
+	// define essential functions
+	prototype.add = merge;
+	
+	prototype.remove = function(item, once) {
+		for(var index;(index = this.indexOf(item)) >= 0;) {
+			this.splice(index, 1);
+			if( once ) break;
+		}
+	};
+	
+	prototype.refresh = function(selector, criteria, single) {
 		if( arguments.length && !selector ) return console.error('invalid selector', selector);
 		
 		this.clear();
 		this.selector = selector;
 		if( criteria ) this.criteria = criteria;
 		if( single === true ) this.single = single = true;
-		if( criteria ) console.log('criteria', criteria);
 		if( typeof(selector) === 'string' ) {
 			var items = [];
 			if( criteria instanceof $ ) {
@@ -161,7 +153,14 @@ var $ = (function() {
 		return this;
 	};
 	
-	fn.clear = function() {
+	prototype.each = function(fn) {
+		this.forEach(function(el) {
+			fn.call(el);
+		});
+		return this;
+	};
+	
+	prototype.clear = function() {
 		var len = this.length;
 		if( len > 0 ) {
 			for(var i=0; i < len; i++) {
@@ -177,17 +176,102 @@ var $ = (function() {
 		return this;
 	};
 	
-	fn.each = function(fn) {
-		this.forEach(function(el) {
-			fn.call(el);
+	prototype.get = function(index) {
+		return this[index];
+	};
+		
+	prototype.data = function(key, value) {
+		if( typeof(key) === 'object' ) {
+			for(var k in key) {
+				if( key.hasOwnProperty(k) ) this.data(k, key[k]);
+			}
+			return this;
+		}
+			
+		if( arguments.length <= 1 ) {
+			var arg = arguments;
+			var arr = [];
+			this.each(function() {
+				arr.push(data.apply(this, arg));
+			});			
+			return array_return(arr);
+		}
+		
+		if( typeof(key) !== 'string' ) return console.error('invalid key', key);
+		
+		var self = this;
+		return this.each(function() {
+			value = resolve.call(this, value);
+			data.call(this, key, value);
 		});
+	};
+	
+	prototype.arg = function(value) {
+		if( !arguments.length ) return this.data('arg');
+		this.data('arg', value);
 		return this;
 	};
 	
-	fn.get = function(index) {
-		return this[index];
+	prototype.context = function(context) {
+		if( !arguments.length ) return this.__context__;
+		
+		if( !(context instanceof $) ) return console.error('context must be an DOM($) instance but', context);
+		this.__context__ = context;
+		return this;
 	};
 	
+	prototype.out = function(step) {
+		step = step || 1;
+		if( typeof(step) !== 'number' ) return console.error('invalid parameter', step);
+				
+		var c = this;
+		var last = c;
+		var cnt = 0;
+		for(;(c = (c.context && c.context()));) {
+			cnt++;
+			if( c ) last = c;
+			if( step === cnt ) return last;
+			if( cnt > 100 ) return console.error('so many out', this);
+		}
+		
+		return last;
+	};
+	
+	return $;
+})();
+
+
+// setup core functions
+(function($) {
+	"use strict";
+	
+	var fn = $.fn;
+	
+	var accessor = $.util.accessor;
+	var array_return = $.util.array_return;
+	var resolve = $.util.resolve;
+	var data = $.util.data;
+	var create = $.util.create;
+	var isElement = $.util.isElement;
+	
+	
+	function processing(fnname, value) {
+		if( arguments.length <= 1 ) {
+			var arr = [];
+			this.each(function() {
+				arr.push(this[fnname]);
+			});
+			return array_return(arr);
+		}
+		
+		value = value || '';		
+		return this.each(function() {			
+			var v = resolve.call(this, value);
+			this[fnname] = v;
+		});
+	}
+	
+	// core functions	
 	fn.id = function(id) {
 		if( !arguments.length ) {
 			var arr = [];
@@ -294,38 +378,6 @@ var $ = (function() {
 		});
 	};
 	
-	fn.data = function(key, value) {
-		if( typeof(key) === 'object' ) {
-			for(var k in key) {
-				if( key.hasOwnProperty(k) ) this.data(k, key[k]);
-			}
-			return this;
-		}
-			
-		if( arguments.length <= 1 ) {
-			var arg = arguments;
-			var arr = [];
-			this.each(function() {
-				arr.push(data.apply(this, arg));
-			});			
-			return array_return(arr);
-		}
-		
-		if( typeof(key) !== 'string' ) return console.error('invalid key', key);
-		
-		var self = this;
-		return this.each(function() {
-			value = resolve.call(this, value);
-			data.call(this, key, value);
-		});
-	};
-	
-	fn.arg = function(value) {
-		if( !arguments.length ) return this.data('arg');
-		this.data('arg', value);
-		return this;
-	};
-	
 	fn.on = function(type, fn, bubble) {
 		if( typeof(type) !== 'string' ) return console.error('invalid type', type);
 		if( typeof(fn) !== 'function' ) return console.error('invalid fn', fn);
@@ -360,12 +412,12 @@ var $ = (function() {
 			var p = this.parentNode;
 			if( p ) arr.push(p);
 		});
-		return $(arr);
+		return $(arr).context(this);
 	};
 	
 	fn.all = fn.find = function(selector) {
 		if( !arguments.length ) selector = ':scope > *';
-		return $(selector, this);
+		return $(selector, this).context(this);
 	};
 	
 	fn.children = function() {
@@ -374,7 +426,7 @@ var $ = (function() {
 	
 	fn.one = function(selector) {
 		if( !arguments.length ) selector = ':scope > *';
-		return $(selector, this, true);
+		return $(selector, this, true).context(this);
 	};
 	
 	fn.classes = function(classes, flag) {
@@ -474,7 +526,7 @@ var $ = (function() {
 		this.each(function() {
 			arr.push(this.cloneNode(true));
 		});
-		return $(arr);
+		return $(arr).context(this);
 	};
 	
 	fn.filter = function(fn, reverse) {
@@ -497,7 +549,7 @@ var $ = (function() {
 			var result = fn.apply(this, arguments);
 			if( result !== compare ) items.push(this);
 		});
-		return $(items);
+		return $(items).context(this);
 	};
 	
 	fn.contains = function(child) {
@@ -536,6 +588,7 @@ var $ = (function() {
 	fn.create = function(accessor, args, fn) {
 		if( typeof(accessor) !== 'string' ) return console.error('invalid accessor', accessor);
 		var arr = [];
+		
 		this.each(function() {
 			if( !args ) args = [null];
 			if( args && typeof(args.length) !== 'number' ) args = [args];
@@ -549,12 +602,12 @@ var $ = (function() {
 				arr.push(el);
 			}
 		});
-		return $(arr);
+		return $(arr).context(this);
 	};
 	
 	fn.append = function(items) {
 		if( !items ) return console.error('invalid items', items);
-		if( !(items instanceof $) ) items = $(items);
+		if( !(items instanceof $) ) items = $(items).context(this);
 		
 		var target = this[0];
 		if( target ) {
