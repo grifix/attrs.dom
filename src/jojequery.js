@@ -1,3 +1,28 @@
+/*!
+ * jojequery (MIT License)
+ *
+ * This dom selector just for practice design patterns inspired from jquery & d3.js.
+ * If you want use this, you have alternative choice "UI Alien (https://github.com/attrs/ui.alien)". 
+ * It's really good framework to javascript based UI programming and also contains updated this dom selector. :)
+ * 
+ * @author: joje6 (joje.attrs@gmail.com)
+ * @version: draft
+ * @date: 2014-06-25
+*/
+if( !String.prototype.startsWith ) {
+	String.prototype.startsWith = function(s) {
+		return this.indexOf(s) === 0;
+	};
+}
+
+if( !String.prototype.endsWith ) {
+	String.prototype.endsWith = function(s) {
+		var t = String(s);
+		var index = this.lastIndexOf(t);
+		return index >= 0 && index === this.length - t.length;
+	};
+}
+
 var $ = (function() {
 	"use strict";
 	
@@ -8,23 +33,47 @@ var $ = (function() {
 	}
 	
 	var __root__ = {};
-	function DOM(selector, criteria, single, context) {
+	function $(selector, criteria, single, context) {
+		if( selector === document ) return $;
 		if( selector !== __root__ ) return new Selector(selector, criteria, single, context);
 	}
-	
-	var $ = DOM;
 	
 	$.prototype = new Array();
 	var prototype = Selector.prototype = new $(__root__);
 	
-	$.ready = function(fn) {
-		window.addEventListener('DOMContentLoaded', fn);
+	$.on = function(type, fn, bubble) {
+		if( window.addEventListener ) {
+			window.addEventListener(type, fn, ((bubble===true) ? true : false));
+		} else if( window.attachEvent ) {
+			if( type == 'DOMContentLoaded' ) {
+				document.attachEvent("onreadystatechange", function(){
+					if ( document.readyState === "complete" ) {
+						document.detachEvent( "onreadystatechange", arguments.callee );
+						if( fn ) fn.apply(this, arguments);
+					}
+				});
+			} else {
+				document.attachEvent('on' + type, fn, ((bubble===true) ? true : false));
+			}
+		}
+		return this;
+	};
+
+	$.un = function(type, fn, bubble) {
+		if( window.removeEventListener ) {
+			window.removeEventListener(type, fn, ((bubble===true) ? true : false));
+		} else {
+			document.detachEvent('on' + type, fn, ((bubble===true) ? true : false));
+		}
 		return this;
 	};
 	
+	$.ready = function(fn) {
+		return $.on('DOMContentLoaded', fn);
+	};
+	
 	$.load = function(fn) {
-		window.addEventListener('load', fn);
-		return this;
+		return $.on('load', fn);
 	};
 	
 	$.create = function() {
@@ -34,10 +83,7 @@ var $ = (function() {
 		return items;
 	};
 	
-	$.fn = prototype;
-	
-	
-	
+	$.fn = prototype;	
 	
 	// common functions
 	function merge(o) {
@@ -66,11 +112,61 @@ var $ = (function() {
 		}
 	}
 	
+	function accessor(el) {
+		var tag = el.tagName.toLowerCase();
+		var id = el.id;
+		var cls = el.className.split(' ').join('.');
+		id = id ? ('#' + id) : '';
+		cls = cls ? ('.' + cls) : '';
+		
+		return tag + id + cls;
+	}
+	
+	function resolve(value) {
+		if( typeof(value) !== 'function' ) return value;
+		return value.call(this, data.call(this, 'arg'));
+	}
+	
+	function array_return(arr) {
+		if( !arr || !arr.length ) return null;
+		if( arr.length === 1 ) return arr[0];
+		return arr;
+	}
+	
 	function isElement(el) {
 		if( typeof(el) !== 'object' ) return false;
 		else if( !(window.attachEvent && !window.opera) ) return (el instanceof window.Element);
 		else return (el.nodeType == 1 && el.tagName);
-	};
+	}
+	
+	function isHtml(html) {
+		return ((typeof(html) === 'string') && (html.match(/(<([^>]+)>)/ig) || ~html.indexOf('\n'))) ? true : false;
+	}
+	
+	function evalHtml(html) {
+		var els = [];		
+		if( typeof(html) !== 'string' ) return els;
+		
+		var el;
+		if( !html.toLowerCase().indexOf('<tr') ) el = document.createElement('tbody');
+		else if( !html.toLowerCase().indexOf('<tbody') || !html.toLowerCase().indexOf('<thead') || !html.toLowerCase().indexOf('<tfoot') ) el = document.createElement('table');
+		else if( !html.toLowerCase().indexOf('<td') ) el = document.createElement('tr');
+		else el = document.createElement('div');
+
+		el.innerHTML = html;
+		var children = el.childNodes;
+		if( children ) {
+			for(var i=0; i < children.length; i++) {
+				els.push(el.childNodes[i]);
+			}
+
+			els.forEach(function(item) {
+				el.removeChild(item);
+			});
+		}
+
+		return els;
+	}
 	
 	function create(selector, html) {
 		if( !selector || typeof(selector) !== 'string' ) return console.error('invalid parameter', selector);
@@ -96,30 +192,12 @@ var $ = (function() {
 		return el;
 	}
 	
-	function accessor(el) {
-		var tag = el.tagName.toLowerCase();
-		var id = el.id;
-		var cls = el.className.split(' ').join('.');
-		id = id ? ('#' + id) : '';
-		cls = cls ? ('.' + cls) : '';
-		
-		return tag + id + cls;
-	}
-	
-	function array_return(arr) {
-		if( !arr || !arr.length ) return null;
-		if( arr.length === 1 ) return arr[0];
-		return arr;
-	}
-	
-	function resolve(value) {
-		if( typeof(value) !== 'function' ) return value;
-		return value.call(this, data.call(this, 'arg'));
-	}
-	
 	$.util = {
+		merge: merge,
 		data: data,
 		isElement: isElement,
+		isHtml: isHtml,
+		evalHtml: evalHtml,
 		create: create,
 		accessor: accessor,
 		array_return: array_return,
@@ -140,6 +218,7 @@ var $ = (function() {
 	
 	prototype.refresh = function(selector, criteria, single) {
 		//if( arguments.length && !selector ) return console.error('invalid selector', selector);
+		if( isHtml(selector) ) selector = evalHtml(selector);
 		this.clear();
 		this.selector = selector = selector || [];
 		if( criteria ) this.criteria = criteria;
@@ -231,6 +310,13 @@ var $ = (function() {
 		return this;
 	};
 	
+	prototype.call = function(fn) {
+		if( typeof(fn) !== 'function' ) return console.error('require function', fn);
+		return this.each(function() {
+			resolve.call(this, fn);
+		});
+	};
+	
 	prototype.out = function(step) {
 		step = step || 1;
 		if( typeof(step) !== 'number' ) return console.error('invalid parameter', step);
@@ -248,6 +334,14 @@ var $ = (function() {
 		return last;
 	};
 	
+	
+	// regist module system
+	if( window.define ) {
+		define('dom', function(module) {
+			module.exports = $;
+		});
+	}
+	
 	return $;
 })();
 
@@ -264,8 +358,7 @@ var $ = (function() {
 	var data = $.util.data;
 	var create = $.util.create;
 	var isElement = $.util.isElement;
-	
-	
+		
 	function stringify(el) {
 		if( el.outerHTML ) {
 			return el.outerHTML;
@@ -314,25 +407,106 @@ var $ = (function() {
 		if( (el.scrollWidth || el.scrollHeight || el.offsetWidth || el.offsetHeight || el.clientWidth || el.clientHeight) ) return true;
 		return false;
 	}	
-		
-	function type1(fnname, arg) {
+	
+	// function template for node attributes
+	function type1(attr, arg) {
 		if( !arg.length ) {
 			var arr = [];
 			this.each(function() {
-				arr.push(this[fnname]);
+				arr.push(this[attr]);
 			});
 			return array_return(arr);
 		}
 				
 		return this.each(function() {
-			this[fnname] = resolve.call(this, arg[0]);
+			this[attr] = resolve.call(this, arg[0]);
 		});
+	}
+	
+	// function template for element attributes handling
+	function type2(arg) {
+		if( !arg.length ) {
+			var arr = [];
+			this.each(function() {
+				var attrs = this.attributes;
+				var o = {}; 
+				for(var i= attrs.length-1; i>=0; i--) {
+					o[attrs[i].name] = attrs[i].value;
+				}
+
+				arr.push(o);
+			});			
+			return array_return(arr);
+		}
+		
+		var key = arg[0];
+		var value = arg[1];
+		
+		if( typeof(key) === 'object' ) {
+			for(var k in key) {
+				if( key.hasOwnProperty(k) ) this.attr(k, key[k]);
+			}
+			return this;
+		}
+		
+		if( typeof(key) !== 'string' ) return console.error('invalid key', key);
+			
+		if( arg.length === 1 ) {
+			var arr = [];
+			this.each(function() {
+				arr.push(this.getAttribute(key));
+			});
+			return array_return(arr);
+		}
+		
+		return this.each(function() {
+			var v = resolve.call(this, value);
+			if( v === false ) this.removeAttribute(key);
+			else this.setAttribute(key, v || '');
+		});
+	}
+	
+	function boundary(el) {
+		if( !el ) return console.error('invalid parameter', el);
+		
+		var abs = function(el) {
+			var position = { x: el.offsetLeft, y: el.offsetTop };
+			if (el.offsetParent) {
+				var tmp = abs(el.offsetParent);
+				position.x += tmp.x;
+				position.y += tmp.y;
+			}
+			return position;
+		};
+
+		var boundary = {
+			x: 0,
+			y: 0,
+			width: el.offsetWidth,
+			height: el.offsetHeight,
+			scrollWidth: el.scrollWidth,
+			scrollHeight: el.scrollHeight,
+			clientWidth: el.clientWidth,
+			clientHeight: el.clientHeight
+		};
+
+		if( el.parentNode ) {
+			boundary.x = el.offsetLeft + el.clientLeft;
+			boundary.y = el.offsetTop + el.clientTop;
+			if( el.offsetParent ) {
+				var parentpos = abs(el.offsetParent);
+				boundary.x += parentpos.x;
+				boundary.y += parentpos.y;
+			}
+		}
+		return boundary;
 	}
 	
 	$.util.stringify = stringify;
 	$.util.isShowing = isShowing;
 	$.util.computed = computed;
 	$.util.type1 = type1;
+	$.util.boundary = boundary;
 	
 	
 	// Let's define core functions
@@ -358,46 +532,9 @@ var $ = (function() {
 		return this.attr('name', name);
 	};
 	
-	fn.attr = function(key, value) {
-		if( !arguments.length ) {
-			var arr = [];
-			this.each(function() {
-				var attrs = this.attributes;
-				var o = {}; 
-				for(var i= attrs.length-1; i>=0; i--) {
-					o[attrs[i].name] = attrs[i].value;
-				}
-
-				arr.push(o);
-			});			
-			return array_return(arr);
-		}
-		
-		if( typeof(key) === 'object' ) {
-			for(var k in key) {
-				if( key.hasOwnProperty(k) ) this.attr(k, key[k]);
-			}
-			return this;
-		}
-		
-		if( typeof(key) !== 'string' ) return console.error('invalid key', key);
-			
-		if( arguments.length === 1 ) {
-			var arr = [];
-			this.each(function() {
-				arr.push(this.getAttribute(key));
-			});
-			return array_return(arr);
-		}
-				
-		var self = this;
-		return this.each(function() {
-			var v = resolve.call(this, value);
-			if( v === false ) this.removeAttribute(key);
-			else this.setAttribute(key, v || '');
-		});
+	fn.attr = function() {
+		return type2.call(this, arguments);
 	};
-	
 	
 	// contents handling
 	fn.text = function(value) {
@@ -625,18 +762,17 @@ var $ = (function() {
 		return $(arr).context(this);
 	};
 	
-	fn.append = function(items) {
+	fn.append = function(items, clone) {
 		if( !items ) return console.error('invalid items', items);
 		if( !(items instanceof $) ) items = $(items).context(this);
-		
-		var target = this[0];
-		if( target ) {
+				
+		return this.each(function() {
+			var target = this;
 			items.each(function() {
-				target.appendChild(this);
+				var item = clone ? this.cloneNode(true) : this;
+				target.appendChild(item);
 			});
-		}
-		
-		return this;
+		});
 	};
 	
 	fn.appendTo = function(target) {
@@ -676,17 +812,62 @@ var $ = (function() {
 		});
 	};
 	
-	// view handling
-	fn.hide = function() {
+	// TODO: 미구현
+	fn.fire = function(type, values) {
 		return this.each(function() {
-			this.style.display = 'none';
+			console.log('fired', this, type, values);
 		});
 	};
 	
-	fn.show = function() {
-		return this.each(function() {
-			this.style.display = '';
-		});
+	
+	// view handling
+	fn.hide = function(options, fn) {
+		var self = this;
+		var internal = function() {
+			self.each(function() {
+				this.style.display = 'none';
+				$(this).fire('hide');
+			});
+
+			if(fn) fn.apply(self, arguments);
+		};
+
+		if( typeof(options) === 'object' ) {
+			this.anim(options, scope || this).run(internal);
+		} else {
+			if( typeof(options) === 'function' ) fn = options;
+			internal.call(this);
+		}
+		
+		return this;
+	};
+	
+	fn.show = function(options, fn) {
+		var self = this;
+		var internal = function() {
+			self.each(function() {
+				var el = $(this);
+				
+				this.style.display = '';
+				this.style.visibility = '';
+				if( !this.style.cssText ) el.attr('style', false);
+				
+				if( el.computed('display').toLowerCase() === 'none' ) this.style.display = 'block';
+				if( el.computed('visibility').toLowerCase() === 'hidden' ) this.style.display = 'visible';
+				el.fire('show');
+			});
+
+			if(fn) fn.apply(self, arguments);
+		};
+
+		if( typeof(options) === 'object' ) {
+			this.anim(options, scope || this).run(internal);
+		} else {
+			if( typeof(options) === 'function' ) fn = options;
+			internal.call(this);
+		}
+		
+		return this;
 	};
 	
 	fn.fade = function(start, end) {
@@ -722,6 +903,8 @@ var $ = (function() {
 		return this.fade(1, 0);
 	};
 	
+	
+	// size & position & status
 	fn.staged = function(index) {
 		if( typeof(index) === 'number' ) return document.body.contains(this[index]);
 		
@@ -744,4 +927,240 @@ var $ = (function() {
 		return (cnt > 0 && cnt === this.length);
 	};
 	
+	fn.boundary = function() {
+		var arr = [];
+		this.each(function() {
+			arr.push(boundary(this));
+		});
+		return array_return(arr);
+	};
+	
+	fn.innerWidth = function() {
+		var arr = [];
+		this.each(function() {
+			var w = 0;
+			var c = this[0].children;
+			if(c) {
+				for(var i=0; i < c.length; i++) {
+					w += c[i].offsetWidth;
+				}
+			}
+
+			arr.push(w);
+		});
+		return array_return(arr);
+	};
+	
+	fn.innerHeight = function() {
+		var arr = [];
+		this.each(function() {
+			var h = 0;
+			var c = this[0].children;
+			if(c) {
+				for(var i=0; i < c.length; i++) {
+					h += c[i].offsetHeight;
+				}
+			}
+
+			arr.push(h);
+		});
+		return array_return(arr);
+	};
+	
+	(function() {
+		var type1 = [
+			'offsetWidth', 'offsetHeight', 'clientWidth', 'clientHeight', 'scrollWidth', 'scrollHeight'
+		];
+		
+		var type2 = [
+			'border', 'color', 'margin', 'padding', 'width', 'minWidth', 'maxWidth', 'height', 'minHeight', 'maxHeight',
+			'flex', 'float', 'opacity', 'zIndex'
+		];
+		
+		type1.forEach(function(name) {
+			fn[name] = (function(name) {
+				return function() {
+					return type1.call(this, name, arguments);
+				};
+			})();
+		});
+		
+		type2.forEach(function(name) {
+			fn[name] = (function(name) {
+				return function() {
+					return type2.call(this, name, arguments);
+				};
+			})();
+		});
+	})();	
+	
+	// misc
+	fn.bg = function(bg) {
+		if( !arguments.length ) {
+			var arr = [];
+			this.each(function() {
+				var el = this, o = {};
+
+				if( el.style.backgroundImage ) o['image'] = el.style.backgroundImage;
+				if( el.style.backgroundColor ) o['color'] = el.style.backgroundColor;
+				if( el.style.backgroundSize ) o['size'] = el.style.backgroundSize;
+				if( el.style.backgroundPosition ) o['position'] = el.style.backgroundPosition;
+				if( el.style.backgroundAttachment ) o['attachment'] = el.style.backgroundAttachment;
+				if( el.style.backgroundRepeat ) o['repeat'] = el.style.backgroundRepeat;
+				if( el.style.backgroundClip ) o['clip'] = el.style.backgroundClip;
+				if( el.style.backgroundOrigin ) o['origin'] = el.style.backgroundOrigin;
+	
+				arr.push(o);
+			});
+			return array_return(arr);
+		}
+		
+		if( typeof(bg) === 'string' ) {
+			var s = bg.trim().toLowerCase();
+			if( (!~bg.indexOf('(') && !~bg.indexOf(' ')) || bg.startsWith('rgb(') || bg.startsWith('rgba(') || bg.startsWith('hsl(') || bg.startsWith('hlsa(') ) bg = {'color':bg};
+			else bg = {'image':bg};
+		}
+		
+		if( typeof(bg) !== 'object' ) return this;
+		
+		return this.each(function() {
+			var el = $(this);	
+			el.style('background-image', bg['image']);
+			el.style('background-color', bg['color']);
+			el.style('background-size', bg['size']);
+			el.style('background-position', bg['position']);
+			el.style('background-attachment', bg['attachment']);
+			el.style('background-repeat', bg['repeat']);
+			el.style('background-clip', bg['clip']);
+			el.style('background-origin', bg['origin']);
+		});
+	};
+	
+	fn.font = function(font) {
+		if( !arguments.length ) {
+			var arr = [];
+			this.each(function() {
+				var el = this, o = {};
+				
+				if( el.style.fontFamily ) o['family'] = el.style.fontFamily;
+				if( el.style.fontSize ) o['size'] = el.style.fontSize;
+				if( el.style.fontStyle ) o['style'] = el.style.fontStyle;
+				if( el.style.fontVarient ) o['variant'] = el.style.fontVarient;
+				if( el.style.fontWeight ) o['weight'] = el.style.fontWeight;
+				if( el.style.fontSizeAdjust ) o['adjust'] = el.style.fontSizeAdjust;
+				if( el.style.fontStretch ) o['stretch'] = el.style.fontStretch;
+				if( el.style.letterSpacing ) o['spacing'] = el.style.letterSpacing;
+				if( el.style.lineHeight ) o['height'] = el.style.lineHeight;
+		
+				arr.push(o);
+			});
+			return array_return(arr);			
+		}
+		
+		return this.each(function() {
+			var el = $(this);
+			if( typeof(font) === 'string' ) {
+				el.style('font', font);
+			} else if( typeof(font) === 'number' ) {
+				el.style('font-size', font + 'px');
+			} else if( typeof(font) === 'object' ){
+				el.style('font-family', font['family']);
+				el.style('font-size', font['size']);
+				el.style('font-style', font['style']);
+				el.style('font-variant', font['variant']);
+				el.style('font-weight', font['weight']);
+				el.style('font-size-adjust', font['adjust']);
+				el.style('font-stretch', font['stretch']);
+				el.style('letter-spacing', font['spacing']);
+				el.style('line-height', font['height']);
+			}
+		});
+	};
+	
+	
+	// animation
+	fn.anim = function(options, scope) {
+		return new Animator(this, options, scope || this);
+	};
+	
+	
+	// template
+	fn.bind = function(values, functions) {
+		var arr = [];
+		this.each(function() {
+			var result = new Template(this).bind(values, functions);
+			arr.push(result);
+		});
+		return array_return(arr);
+	};
+	
+	fn.tpl = function() {
+		var arr = [];
+		this.each(function() {
+			arr.push(new Template(this));
+		});
+		return array_return(arr);
+	};
 })($);
+
+
+// MutationObserver setup for detect DOM node changes.
+// if browser doesn't support DOM3 MutationObeserver, use MutationObeserver shim (https://github.com/megawac/MutationObserver.js)
+$.ready(function() {
+	var observer = new MutationObserver(function(mutations){
+		mutations.forEach(function(mutation) {
+			//if( debug('mutation') ) console.error(mutation.target, mutation.type, mutation);
+			
+			if( mutation.type === 'childList' ) {
+				var target = mutation.target;
+				var tel = target.__handler__;
+				var added = mutation.addedNodes;
+				var removed = mutation.removedNodes;
+				
+								
+				if( removed ) {
+					for(var i=0; i < removed.length; i++) {
+						var source = removed[i].__handler__;
+						
+						if( tel ) {
+							tel.fire('removed', {
+								removed: removed[i]
+							});
+						}
+						
+						if( source ) {
+							source.fire('detached', {
+								from: target
+							});
+						}
+					}
+				}
+				
+				if( added ) {
+					for(var i=0; i < added.length; i++) {
+						var source = added[i].__handler__;
+							
+						if( tel ) {
+							tel.fire('added', {
+								added: added[i]
+							});
+						}
+						
+						if( source ) {
+							source.fire('attached', {
+								to: target
+							});
+						}
+					}
+				}
+			}
+		}); 
+    });
+
+	observer.observe(document.body, {
+		subtree: true,
+	    childList: true,
+	    attributes: true,
+	    characterData: true
+	});
+});

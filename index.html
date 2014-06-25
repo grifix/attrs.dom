@@ -12,11 +12,11 @@
 		
 		<script type="text/javascript">
 		//<![CDATA[
-		
-			$.ready(function(e) {
-				if( false ) {
-					console.log('DOM Ready!');
+			$(document).ready(function(e) {
+				console.log('DOM Ready!');
 				
+				
+				if( false ) {				
 					var el = $('#content');
 					console.log('el', el);
 					console.log('el instanceof $', (el instanceof $));
@@ -192,6 +192,25 @@
 					console.log($('#content').html('html').html());
 					console.log($('#content').text('text').text());
 					console.log($('#content').outer());
+					
+
+					console.log($('<div class="test">a</div>'));
+					console.log($('<tr class="test">a</tr>'));
+					console.log($('<td class="test">a</td>'));
+					
+					console.log($('#content').boundary());
+					
+					$('div.item').call(function(d) {
+						console.log('call', this, d);
+					});
+					$.create('div.item', [1,2,3,4,5]).call(function(d) {
+						console.log('call', this, d);
+					});
+					
+					$('div').attr('a', 1).attr({b:2,a:false});
+					
+					console.log($('#content').bg('url("http://www.w3schools.com/images/w3logotest2.png")').bg());
+					console.log($('#content').font(20).font());
 				}
 			});
 		//]]>
