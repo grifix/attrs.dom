@@ -22,7 +22,8 @@
 					console.log('el instanceof $', (el instanceof $));
 				
 					// attr
-					console.log('\n\n - attr');
+					console.log('\n\n - attr');				
+					console.log($('#content').name('test!!!').name(false)[0]);
 				
 					$('.gnb').id('gnb');
 					console.log($('.gnb').attr());
@@ -153,17 +154,45 @@
 					.html(function(d) { return 'created-' + d; })
 					.create('div.item', ['a','b','c'])
 					.out().style('background', 'silver');
+					
+					$('#logo').create('div.inner', [{
+						color: '#777',
+						border: '1px solid silver'
+					}, {
+						color: '#a77',
+						border: '1px solid orange'
+					}])
+					.style('margin', '5px')
+					.style('color', function(d) {return d.color;})
+					.style('border', function(d) {return d.border;})
+					.html('created!')
+					.out();
 				
 					console.log(items);
-				}
+					
+					var items = $.create('div.inner', [{
+						color: '#777',
+						border: '1px solid silver'
+					}, {
+						color: '#a77',
+						border: '1px solid orange'
+					}])
+					.style('margin', '5px')
+					.style('color', function(d) {return d.color;})
+					.style('border', function(d) {return d.border;})
+					.html('created!');
+			
+					console.log(items);
+					
+					console.log($('#content').staged());
+					console.log($.create('div').staged());
+					console.log($('#content').showing('display'));
+					console.log($('#content').hide().showing('display'));
 				
-				$('#logo').create('div.inner', {
-					color: '#333',
-					border: '1px solid silver'
-				})
-				.style('color', function(d) {return d.color;})
-				.style('border', function(d) {return d.border;})
-				.out();
+					console.log($('#content').html('html').html());
+					console.log($('#content').text('text').text());
+					console.log($('#content').outer());
+				}
 			});
 		//]]>
 		</script>

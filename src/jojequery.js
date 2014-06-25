@@ -12,23 +12,34 @@ var $ = (function() {
 		if( selector !== __root__ ) return new Selector(selector, criteria, single, context);
 	}
 	
-	DOM.prototype = new Array();
-	var prototype = Selector.prototype = new DOM(__root__);
+	var $ = DOM;
 	
-	DOM.ready = function ready(fn) {
+	$.prototype = new Array();
+	var prototype = Selector.prototype = new $(__root__);
+	
+	$.ready = function(fn) {
 		window.addEventListener('DOMContentLoaded', fn);
 		return this;
 	};
 	
-	DOM.load = function ready(fn) {
+	$.load = function(fn) {
 		window.addEventListener('load', fn);
 		return this;
 	};
 	
-	DOM.fn = prototype;
+	$.create = function() {
+		var tmp = $(document.createElement('div'));
+		var items = tmp.create.apply(tmp, arguments).context(null);
+		tmp = null;
+		return items;
+	};
 	
-	var $ = DOM;
+	$.fn = prototype;
 	
+	
+	
+	
+	// common functions
 	function merge(o) {
 		if( typeof(o.length) === 'number' ) {
 			for(var i=0; i < o.length; i++) {
@@ -55,7 +66,6 @@ var $ = (function() {
 		}
 	}
 	
-	// common functions
 	function isElement(el) {
 		if( typeof(el) !== 'object' ) return false;
 		else if( !(window.attachEvent && !window.opera) ) return (el instanceof window.Element);
@@ -81,10 +91,10 @@ var $ = (function() {
 		if( classes ) el.className = classes;
 		
 		if( typeof(html) === 'string' ) el.innerHTML = html;
-		else if( typeof(html) === 'function' ) html.call(this, el);
+		else if( typeof(html) === 'function' ) html.call(el, el);
 		
 		return el;
-	};
+	}
 	
 	function accessor(el) {
 		var tag = el.tagName.toLowerCase();
@@ -120,17 +130,18 @@ var $ = (function() {
 	prototype.add = merge;
 	
 	prototype.remove = function(item, once) {
+		if( typeof(item) === 'number' ) item = this[item];
 		for(var index;(index = this.indexOf(item)) >= 0;) {
 			this.splice(index, 1);
 			if( once ) break;
 		}
+		return this;
 	};
 	
 	prototype.refresh = function(selector, criteria, single) {
-		if( arguments.length && !selector ) return console.error('invalid selector', selector);
-		
+		//if( arguments.length && !selector ) return console.error('invalid selector', selector);
 		this.clear();
-		this.selector = selector;
+		this.selector = selector = selector || [];
 		if( criteria ) this.criteria = criteria;
 		if( single === true ) this.single = single = true;
 		if( typeof(selector) === 'string' ) {
@@ -201,8 +212,8 @@ var $ = (function() {
 		
 		var self = this;
 		return this.each(function() {
-			value = resolve.call(this, value);
-			data.call(this, key, value);
+			var v = resolve.call(this, value);
+			data.call(this, key, v);
 		});
 	};
 	
@@ -215,8 +226,8 @@ var $ = (function() {
 	prototype.context = function(context) {
 		if( !arguments.length ) return this.__context__;
 		
-		if( !(context instanceof $) ) return console.error('context must be an DOM($) instance but', context);
-		this.__context__ = context;
+		if( context && !(context instanceof $) ) return console.error('context must be an DOM($) instance but', context);
+		this.__context__ = context || null;
 		return this;
 	};
 	
@@ -255,38 +266,77 @@ var $ = (function() {
 	var isElement = $.util.isElement;
 	
 	
-	function processing(fnname, value) {
-		if( arguments.length <= 1 ) {
+	function stringify(el) {
+		if( el.outerHTML ) {
+			return el.outerHTML;
+		} else {
+			var p = el.parent();
+			if( p ) {
+				return p.html();
+			} else {
+				var html = '<' + el.tagName;
+			
+				if( el.style ) html += ' style="' + el.style + '"';
+				if( el.className ) html += ' class="' + el.className + '"';
+			
+				var attrs = el.attributes;
+				for(var k in attrs) {
+					if( !attrs.hasOwnProperty(k) ) continue;
+					if( k && attrs[k] ) {
+						html += ' ' + k + '="' + attrs[k] + '"';
+					}
+				}
+
+				html += '>';
+				html += el.innerHTML;
+				html += '</' + el.tagName + '>';
+
+				return html;
+			}
+		}
+	}
+	
+	function computed(el, k) {
+		var cs;
+		if ( el.currentStyle ) {
+			cs = el.currentStyle;
+		} else if( document.defaultView && document.defaultView.getComputedStyle ) {
+			cs = document.defaultView.getComputedStyle(el);
+		} else {
+			throw new Error('browser does not support computed style');
+		}
+
+		return k ? cs[k] : cs;
+	}
+	
+	function isShowing(el) {
+		if( computed('visibillity') === 'hidden' ) return false;
+		if( (el.scrollWidth || el.scrollHeight || el.offsetWidth || el.offsetHeight || el.clientWidth || el.clientHeight) ) return true;
+		return false;
+	}	
+		
+	function type1(fnname, arg) {
+		if( !arg.length ) {
 			var arr = [];
 			this.each(function() {
 				arr.push(this[fnname]);
 			});
 			return array_return(arr);
 		}
-		
-		value = value || '';		
-		return this.each(function() {			
-			var v = resolve.call(this, value);
-			this[fnname] = v;
+				
+		return this.each(function() {
+			this[fnname] = resolve.call(this, arg[0]);
 		});
 	}
 	
-	// core functions	
-	fn.id = function(id) {
-		if( !arguments.length ) {
-			var arr = [];
-			this.each(function() {
-				arr.push(this.id);
-			});			
-			return array_return(arr);
-		}
-		
-		return this.each(function() {
-			id = resolve.call(this, id);
-			this.id = id;
-		});
-	};
+	$.util.stringify = stringify;
+	$.util.isShowing = isShowing;
+	$.util.computed = computed;
+	$.util.type1 = type1;
 	
+	
+	// Let's define core functions
+	// identifier & attributes
 	fn.accessor = function() {
 		var arr = [];
 		this.each(function() {
@@ -295,22 +345,17 @@ var $ = (function() {
 		return array_return(arr);
 	};
 	
-	fn.text = function(value) {
-		var arr = ['innerText'];
-		if( arguments.length ) arr.push(value);
-		return processing.apply(this, arr);
+	fn.id = function(id) {
+		return type1.call(this, 'id', arguments);
 	};
 	
-	fn.html = function(value) {
-		var arr = ['innerHTML'];
-		if( arguments.length ) arr.push(value);
-		return processing.apply(this, arr);
+	fn.value = fn.val = function(value) {
+		return type1.call(this, 'value', arguments);
 	};
 	
-	fn.outer = function(value) {
-		var arr = ['outerHTML'];
-		if( arguments.length ) arr.push(value);
-		return processing.apply(this, arr);
+	fn.name = function(name) {
+		if( !arguments.length ) return this.attr('name');
+		return this.attr('name', name);
 	};
 	
 	fn.attr = function(key, value) {
@@ -347,12 +392,34 @@ var $ = (function() {
 				
 		var self = this;
 		return this.each(function() {
-			value = resolve.call(this, value);
-			if( value === false ) this.removeAttribute(key);
-			else this.setAttribute(key, value || '');
+			var v = resolve.call(this, value);
+			if( v === false ) this.removeAttribute(key);
+			else this.setAttribute(key, v || '');
 		});
 	};
 	
+	
+	// contents handling
+	fn.text = function(value) {
+		return type1.call(this, 'innerText', arguments);
+	};
+	
+	fn.html = function(value) {
+		return type1.call(this, 'innerHTML', arguments);
+	};
+	
+	fn.outer = function(value) {
+		return type1.call(this, 'outerHTML', arguments);
+	};
+	
+	fn.empty = function() {
+		return this.each(function() {
+			this.innerHTML = '';	
+		});
+	};
+	
+	
+	// style handling
 	fn.style = fn.css = function(key, value) {
 		if( typeof(key) === 'object' ) {
 			for(var k in key) {
@@ -373,63 +440,22 @@ var $ = (function() {
 		
 		var self = this;
 		return this.each(function() {
-			value = resolve.call(this, value);
-			this.style[key] = value || '';
+			var v = resolve.call(this, value);
+			this.style[key] = v || '';
 		});
 	};
 	
-	fn.on = function(type, fn, bubble) {
-		if( typeof(type) !== 'string' ) return console.error('invalid type', type);
-		if( typeof(fn) !== 'function' ) return console.error('invalid fn', fn);
-		return this.each(function() {
-			this.addEventListener(type, fn, bubble);
-		});
-	};
-	
-	fn.off = function(type, fn, bubble) {
-		if( typeof(type) !== 'string' ) return console.error('invalid type', type);
-		if( typeof(fn) !== 'function' ) return console.error('invalid fn', fn);
-		return this.each(function() {
-			this.removeEventListener(type, fn, bubble);
-		});
-	};
-	
-	fn.hide = function() {
-		return this.each(function() {
-			this.style.display = 'none';
-		});
-	};
-	
-	fn.show = function() {
-		return this.each(function() {
-			this.style.display = '';
-		});
-	};
-	
-	fn.parent = function(cnt) {
+	fn.computed = function(key) {
 		var arr = [];
 		this.each(function() {
-			var p = this.parentNode;
-			if( p ) arr.push(p);
+			arr.push(computed(this, key));
 		});
-		return $(arr).context(this);
+		return array_return(arr);		
 	};
 	
-	fn.all = fn.find = function(selector) {
-		if( !arguments.length ) selector = ':scope > *';
-		return $(selector, this).context(this);
-	};
-	
-	fn.children = function() {
-		return this.all();
-	};
-	
-	fn.one = function(selector) {
-		if( !arguments.length ) selector = ':scope > *';
-		return $(selector, this, true).context(this);
-	};
-	
-	fn.classes = function(classes, flag) {
+		
+	// accessor & class	
+	fn.classes = function(cls, flag) {
 		if( !arguments.length ) {
 			var arr = [];
 			this.each(function() {
@@ -439,7 +465,7 @@ var $ = (function() {
 		}
 		
 		return this.each(function() {
-			classes = resolve.call(this, classes);
+			var classes = resolve.call(this, cls);
 			
 			var el = this;
 			var o = (el.className || '').trim();
@@ -466,7 +492,7 @@ var $ = (function() {
 				if( classes ) el.className = classes;
 			}
 		});
-	};
+	};	
 	
 	fn.ac = fn.addClass = function(s) {
 		return this.classes(s, true);
@@ -488,45 +514,29 @@ var $ = (function() {
 		});
 	};
 	
-	fn.fade = function(start, end) {
-		return this.each(function() {
-			var el = this;
-			
-			var opacity = 0;
-			el.style.opacity = 0;
-			el.style.filter = '';
-
-			var last = +new Date();
-			var tick = function() {
-				opacity += (new Date() - last) / 400;
-				el.style.opacity = opacity;
-				el.style.filter = 'alpha(opacity=' + (100 * opacity)|0 + ')';
-
-				last = +new Date();
-
-				if (opacity < 1) {
-					(window.requestAnimationFrame && requestAnimationFrame(tick)) || setTimeout(tick, 16);
-				}
-			};
-
-			tick();
-		});
-	};
 	
-	fn.fadeIn = function() {
-		return this.fade(0, 1);
-	};
-	
-	fn.fadeOut = function() {
-		return this.fade(1, 0);
-	};
-	
-	fn.clone = function() {
+	// find parent & children
+	fn.parent = function(cnt) {
 		var arr = [];
 		this.each(function() {
-			arr.push(this.cloneNode(true));
+			var p = this.parentNode;
+			if( p ) arr.push(p);
 		});
 		return $(arr).context(this);
+	};
+	
+	fn.all = fn.find = function(selector) {
+		if( !arguments.length ) selector = ':scope > *';
+		return $(selector, this).context(this);
+	};
+	
+	fn.children = function() {
+		return this.all();
+	};
+	
+	fn.one = function(selector) {
+		if( !arguments.length ) selector = ':scope > *';
+		return $(selector, this, true).context(this);
 	};
 	
 	fn.filter = function(fn, reverse) {
@@ -585,6 +595,15 @@ var $ = (function() {
 		return (this.length === 1 && target === this[0]) ? true : false;
 	};
 	
+	// creation
+	fn.clone = function() {
+		var arr = [];
+		this.each(function() {
+			arr.push(this.cloneNode(true));
+		});
+		return $(arr).context(this);
+	};
+	
 	fn.create = function(accessor, args, fn) {
 		if( typeof(accessor) !== 'string' ) return console.error('invalid accessor', accessor);
 		var arr = [];
@@ -602,6 +621,7 @@ var $ = (function() {
 				arr.push(el);
 			}
 		});
+		
 		return $(arr).context(this);
 	};
 	
@@ -637,4 +657,91 @@ var $ = (function() {
 			if( p ) p.removeChild(this);
 		});
 	};
+	
+	
+	// events
+	fn.on = function(type, fn, bubble) {
+		if( typeof(type) !== 'string' ) return console.error('invalid type', type);
+		if( typeof(fn) !== 'function' ) return console.error('invalid fn', fn);
+		return this.each(function() {
+			this.addEventListener(type, fn, bubble);
+		});
+	};
+	
+	fn.off = function(type, fn, bubble) {
+		if( typeof(type) !== 'string' ) return console.error('invalid type', type);
+		if( typeof(fn) !== 'function' ) return console.error('invalid fn', fn);
+		return this.each(function() {
+			this.removeEventListener(type, fn, bubble);
+		});
+	};
+	
+	// view handling
+	fn.hide = function() {
+		return this.each(function() {
+			this.style.display = 'none';
+		});
+	};
+	
+	fn.show = function() {
+		return this.each(function() {
+			this.style.display = '';
+		});
+	};
+	
+	fn.fade = function(start, end) {
+		return this.each(function() {
+			var el = this;
+			
+			var opacity = 0;
+			el.style.opacity = 0;
+			el.style.filter = '';
+
+			var last = +new Date();
+			var tick = function() {
+				opacity += (new Date() - last) / 400;
+				el.style.opacity = opacity;
+				el.style.filter = 'alpha(opacity=' + (100 * opacity)|0 + ')';
+
+				last = +new Date();
+
+				if (opacity < 1) {
+					(window.requestAnimationFrame && requestAnimationFrame(tick)) || setTimeout(tick, 16);
+				}
+			};
+
+			tick();
+		});
+	};
+	
+	fn.fadeIn = function() {
+		return this.fade(0, 1);
+	};
+	
+	fn.fadeOut = function() {
+		return this.fade(1, 0);
+	};
+	
+	fn.staged = function(index) {
+		if( typeof(index) === 'number' ) return document.body.contains(this[index]);
+		
+		var cnt = 0;
+		this.each(function() {
+			if( document.body.contains(this) ) cnt++;
+		});
+		
+		return (cnt > 0 && cnt === this.length);
+	};
+	
+	fn.showing = function(index) {
+		if( typeof(index) === 'number' ) return isShowing(this[index]);
+		
+		var cnt = 0;
+		this.each(function() {
+			if( isShowing(this) ) cnt++;
+		});
+		
+		return (cnt > 0 && cnt === this.length);
+	};
+	
 })($);
