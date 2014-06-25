@@ -14,146 +14,156 @@
 		//<![CDATA[
 		
 			$.ready(function(e) {
-				console.log('DOM Ready!');
+				if( false ) {
+					console.log('DOM Ready!');
 				
-				var el = $('#content');
-				console.log('el', el);
-				console.log('el instanceof $', (el instanceof $));
+					var el = $('#content');
+					console.log('el', el);
+					console.log('el instanceof $', (el instanceof $));
 				
-				// attr
-				console.log('\n\n - attr');
+					// attr
+					console.log('\n\n - attr');
 				
-				$('.gnb').id('gnb');
-				console.log($('.gnb').attr());
+					$('.gnb').id('gnb');
+					console.log($('.gnb').attr());
 				
-				$('#content').attr('name1', 'value1');
-				console.log($('#content').attr());
+					$('#content').attr('name1', 'value1');
+					console.log($('#content').attr());
 				
-				$('#content').attr({
-					'name2': 'value2',
-					'name3': 'value3'
-				});
-				console.log($('#content').attr());
+					$('#content').attr({
+						'name2': 'value2',
+						'name3': 'value3'
+					});
+					console.log($('#content').attr());
 				
-				$('#content').attr({
-					'name2': '',
-					'name3': false
-				});
-				console.log($('#content').attr());
+					$('#content').attr({
+						'name2': '',
+						'name3': false
+					});
+					console.log($('#content').attr());
 				
-				// style
-				console.log('\n\n - style');
-				$('#content').style('border', '1px solid black');
-				$('#content').style({
-					'font-size': '9px',
-					'font-weight': 'bold'
-				});
-				console.log('style', $('#content').style('border'));
-				console.log('style', $('#content').style('font-size'));
-				console.log('style', $('#content').style('font-weight'));
-				$('#content').style({
-					'font-size': '',
-					'font-weight': false
-				});
-				console.log('style', $('#content').style('border'));
-				console.log('style', $('#content').style('font-size'));
-				console.log('style', $('#content').style('font-weight'));
+					// style
+					console.log('\n\n - style');
+					$('#content').style('border', '1px solid black');
+					$('#content').style({
+						'font-size': '9px',
+						'font-weight': 'bold'
+					});
+					console.log('style', $('#content').style('border'));
+					console.log('style', $('#content').style('font-size'));
+					console.log('style', $('#content').style('font-weight'));
+					$('#content').style({
+						'font-size': '',
+						'font-weight': false
+					});
+					console.log('style', $('#content').style('border'));
+					console.log('style', $('#content').style('font-size'));
+					console.log('style', $('#content').style('font-weight'));
 				
-				// data
-				console.log('\n\n - data');
-				$('#content').data('key', 'value');
-				$('#content').data({
-					'key2': '2',
-					'key3': '3'
-				});
-				console.log('data(key)', $('#content').data('key'));
-				console.log('data', $('#content').data());
+					// data
+					console.log('\n\n - data');
+					$('#content').data('key', 'value');
+					$('#content').data({
+						'key2': '2',
+						'key3': '3'
+					});
+					console.log('data(key)', $('#content').data('key'));
+					console.log('data', $('#content').data());
 				
-				// arg
-				console.log('\n\n - arg');
-				$('#content').arg('joje');
-				console.log('arg', $('#content').arg());
+					// arg
+					console.log('\n\n - arg');
+					$('#content').arg('joje');
+					console.log('arg', $('#content').arg());
 				
-				// event
-				console.log('\n\n - event');
-				$('#content').on('click', function(e) {
-					console.log(e.type);
-					$(this).off('click', arguments.callee);
-				});
+					// event
+					console.log('\n\n - event');
+					$('#content').on('click', function(e) {
+						console.log(e.type);
+						$(this).off('click', arguments.callee);
+					});
 				
-				// html & text
-				console.log('\n\n - html & text');
-				console.log('html', $('#content').html());
-				console.log('outer', $('#content').outer());
-				console.log('text', $('#content').text());
+					// html & text
+					console.log('\n\n - html & text');
+					console.log('html', $('#content').html());
+					console.log('outer', $('#content').outer());
+					console.log('text', $('#content').text());
 				
-				$('#content').html('<a href="#">html</a>');
-				console.log('html', $('#content').html());
+					$('#content').html('<a href="#">html</a>');
+					console.log('html', $('#content').html());
 				
-				$('#content').text('<a href="#">text</a>');
-				console.log('text', $('#content').text());
+					$('#content').text('<a href="#">text</a>');
+					console.log('text', $('#content').text());
 				
-				$('#content').outer('<div id="content" class="recreated">outer</div>');
-				console.log('outer', $('#content').outer());
+					$('#content').outer('<div id="content" class="recreated">outer</div>');
+					console.log('outer', $('#content').outer());
 				
-				// clear
-				console.log('\n\n - clear');
-				var els = $('div');
-				console.log('div', els);
-				console.log('clear', els.clear());
-				
-				
-				// global select
-				console.log('\n\n - global selection');	
-				console.log('#content', $('#content'));
-				console.log('.gnb', $('.gnb'));
-				console.log('div > a', $('div > a'));
-				
-				// sub select
-				console.log('\n\n - sub selection');
-				console.log("$('#gnb').all()", $('#gnb').all());
-				console.log("$('#gnb').one()", $('#gnb').one());
-				console.log("$('div').all()", $('div').all());
-				console.log("$('div').one()", $('div').one());
-				
-				// clone
-				console.log('\n\n - clone');
-				var cloned = $('#gnb').all().clone();
-				console.log('cloned', cloned)
-				
-				// create
-				var item = $('#content').create('div.items');
-				var items = $('#content').create('div.items', [1,2,3,4,5]);
-				var items = $('#content').create('div.items', [1,2,3,4,5], function(el) {return el;});
+					// clear
+					console.log('\n\n - clear');
+					var els = $('div');
+					console.log('div', els);
+					console.log('clear', els.clear());
 				
 				
+					// global select
+					console.log('\n\n - global selection');	
+					console.log('#content', $('#content'));
+					console.log('.gnb', $('.gnb'));
+					console.log('div > a', $('div > a'));
 				
-				// insert
-				$('#content').append($('#gnb').all());
-				$('#gnb').all().appendTo($('#content'));
-				$('#gnb').all().appendTo('#content');
-				$('#gnb').all().filter(function() {
-					return true;
-				}).appendTo('#content', 0);
+					// sub select
+					console.log('\n\n - sub selection');
+					console.log("$('#gnb').all()", $('#gnb').all());
+					console.log("$('#gnb').one()", $('#gnb').one());
+					console.log("$('div').all()", $('div').all());
+					console.log("$('div').one()", $('div').one());
+				
+					// clone
+					console.log('\n\n - clone');
+					var cloned = $('#gnb').all().clone();
+					console.log('cloned', cloned)
+				
+					// create
+					var item = $('#content').create('div.items');
+					var items = $('#content').create('div.items', [1,2,3,4,5]);
+					var items = $('#content').create('div.items', [1,2,3,4,5], function(el) {return el;});
 				
 				
 				
-				// total
-				var items = $('#content')
-				.create('div.items', [1,2,3,4,5])
-				.attr('value', function(d) {
-					return 'item-' + d;
+					// insert
+					$('#content').append($('#gnb').all());
+					$('#gnb').all().appendTo($('#content'));
+					$('#gnb').all().appendTo('#content');
+					$('#gnb').all().filter(function() {
+						return true;
+					}).appendTo('#content', 0);
+				
+				
+				
+					// total
+					var items = $('#content')
+					.create('div.items', [1,2,3,4,5])
+					.attr('value', function(d) {
+						return 'item-' + d;
+					})
+					.style('color', function(d) {
+						return 0xffffff / d;
+					});
+				
+					var items = $('div.slot').create('div.item', [1,2,3,4,5])
+					.html(function(d) { return 'created-' + d; })
+					.create('div.item', ['a','b','c'])
+					.out().style('background', 'silver');
+				
+					console.log(items);
+				}
+				
+				$('#logo').create('div.inner', {
+					color: '#333',
+					border: '1px solid silver'
 				})
-				.style('color', function(d) {
-					return 0xffffff / d;
-				});
-				
-				var items = $('div.slot').create('div.item', [1,2,3,4,5])
-				.html(function(d) { return 'created-' + d; })
-				.create('div.item', ['a','b','c'])
-				.out().style('background', 'silver');
-				
-				console.log(items);
+				.style('color', function(d) {return d.color;})
+				.style('border', function(d) {return d.border;})
+				.out();
 			});
 		//]]>
 		</script>
