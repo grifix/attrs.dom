@@ -1,10 +1,6 @@
 /*!
  * jojequery (MIT License)
  *
- * This dom selector just for practice design patterns inspired from jquery & d3.js.
- * If you want use this, you have alternative choice "UI Alien (https://github.com/attrs/ui.alien)". 
- * It's really good framework to javascript based UI programming and also contains updated this dom selector. :)
- * 
  * @author: joje6 (joje.attrs@gmail.com)
  * @version: draft
  * @date: 2014-06-25
