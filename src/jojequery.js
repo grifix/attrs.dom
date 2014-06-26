@@ -82,8 +82,13 @@ var $ = (function() {
 	$.fn = prototype;	
 	
 	// common functions
+	function isNode(o){
+		return (typeof(Node) === "object") ? o instanceof Node : 
+			(o && typeof(o.nodeType) === 'number' && typeof(o.nodeName) === 'string');
+	}
+	
 	function merge(o) {
-		if( typeof(o.length) === 'number' ) {
+		if( !isNode(o) && typeof(o.length) === 'number' ) {
 			for(var i=0; i < o.length; i++) {
 				this.push(o[i]);
 			}
@@ -198,6 +203,7 @@ var $ = (function() {
 	$.util = {
 		merge: merge,
 		data: data,
+		isNode: isNode,
 		isElement: isElement,
 		isHtml: isHtml,
 		evalHtml: evalHtml,
@@ -836,23 +842,28 @@ var $ = (function() {
 		return $(arr).context(this);
 	};
 	
-	fn.append = function(items, clone) {
+	fn.append = function(items, reference, adjust) {
 		if( !items ) return console.error('invalid items', items);
 		if( !(items instanceof $) ) items = $(items).context(this);
 				
 		return this.each(function() {
 			var target = this;
 			items.each(function() {
-				var item = clone ? this.cloneNode(true) : this;
-				target.appendChild(item);
+				target.appendChild(this);
 			});
 		});
+	};
+	
+	fn.before = function(items) {
+	};
+	
+	fn.after = function(items) {
 	};
 	
 	fn.appendTo = function(target) {
 		if( !target ) return console.error('invalid target', target);
 		if( typeof(target) === 'string' ) target = document.querySelector(target);
-		if( target instanceof $ ) target = target[0];
+		if( target instanceof $ ) target = target[target.length - 1];	// 어짜피 마지막에만 붙으니 그냥 마지막에다가 붙인다.
 		
 		if( typeof(target.appendChild) !== 'function' ) return console.error('invalid target', target);
 		
@@ -969,7 +980,6 @@ var $ = (function() {
 		});
 	};
 	
-	// TODO: 미구현
 	fn.fire = function(types, values) {
 		if( !types ) return console.error('invalid event type:', types);
 		
@@ -1028,6 +1038,27 @@ var $ = (function() {
 			self.each(function() {
 				this.style.display = 'none';
 				$(this).fire('hide');
+			});
+
+			if(fn) fn.apply(self, arguments);
+		};
+
+		if( typeof(options) === 'object' ) {
+			this.anim(options, scope || this).run(internal);
+		} else {
+			if( typeof(options) === 'function' ) fn = options;
+			internal.call(this);
+		}
+		
+		return this;
+	};
+	
+	fn.invisible = function(options, fn) {
+		var self = this;
+		var internal = function() {
+			self.each(function() {
+				this.style.visibility = 'hidden';
+				$(this).fire('invisible');
 			});
 
 			if(fn) fn.apply(self, arguments);
@@ -1105,7 +1136,7 @@ var $ = (function() {
 	};
 		
 	
-	// size & position & status
+	// status
 	fn.staged = function(index) {
 		if( typeof(index) === 'number' ) return document.body.contains(this[index]);
 		
@@ -1128,6 +1159,8 @@ var $ = (function() {
 		return (cnt > 0 && cnt === this.length);
 	};
 	
+	
+	// size & position
 	fn.boundary = function() {
 		var arr = [];
 		this.each(function() {
@@ -1167,6 +1200,7 @@ var $ = (function() {
 		});
 		return array_return(arr);
 	};
+	
 	
 	// misc
 	fn.bg = function(bg) {
@@ -1299,16 +1333,16 @@ var $ = (function() {
 	// for comfortable use
 	(function() {
 		// TODO : 에러남
-		var type1_arr = [
+		var type_prop = [
 			'offsetWidth', 'offsetHeight', 'clientWidth', 'clientHeight', 'scrollWidth', 'scrollHeight'
 		];
 		
-		var type2_arr = [
+		var type_style = [
 			'border', 'color', 'margin', 'padding', 'width', 'minWidth', 'maxWidth', 'height', 'minHeight', 'maxHeight',
 			'flex', 'float', 'opacity', 'zIndex'
 		];
 		
-		type1_arr.forEach(function(name) {
+		type_prop.forEach(function(name) {
 			fn[name] = (function(name) {
 				return function() {
 					return type1.call(this, name, arguments);
@@ -1316,7 +1350,7 @@ var $ = (function() {
 			})();
 		});
 		
-		type2_arr.forEach(function(name) {
+		type_style.forEach(function(name) {
 			fn[name] = (function(name) {
 				return function() {
 					return type2.call(this, name, arguments);
@@ -1338,8 +1372,7 @@ $.ready(function() {
 				var target = mutation.target;
 				var tel = $(target);
 				var added = mutation.addedNodes;
-				var removed = mutation.removedNodes;
-				
+				var removed = mutation.removedNodes;				
 								
 				if( removed ) {
 					for(var i=0; i < removed.length; i++) {

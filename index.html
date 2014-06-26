@@ -23,7 +23,7 @@
 				
 				
 								
-				if( false ) {
+				if( true ) {
 					var el = $('#content');
 					console.log('el', el);
 					console.log('el instanceof $', (el instanceof $));
@@ -262,7 +262,7 @@
 					console.log($('#tpl-test').bind(dataset));
 					console.log($('#tpl').tpl(dataset.rows).appendTo('#content'));
 					console.log($('#tpl').tpl(data).appendTo('#content'));
-					console.log($('#tpl').arg('만세!').tpl(function(d) {
+					console.log($('#tpl').arg('good').tpl(function(d) {
 						return [{
 							id: d,
 							title: '제목' + d,
@@ -291,18 +291,10 @@
 					
 					$('.gnb > a').fire('custom', {added:1});
 					$('.gnb > a').fire('click');
+					
+					
+					$('.gnb > a').invisible().hide().show();
 				}
-				
-				$('.gnb > a').on('click', function(e) {
-					console.log('event fired', e.type, e);
-				});
-				
-				$('.gnb > a').on('custom', function(e) {
-					console.log('event fired', e.type, e);
-				})
-				
-				$('.gnb > a').fire('custom', {added:1});
-				$('.gnb > a').fire('click');
 			});
 		//]]>
 		</script>
