@@ -905,26 +905,118 @@ var $ = (function() {
 	
 	
 	// events
-	fn.on = function(type, fn, bubble) {
-		if( typeof(type) !== 'string' ) return console.error('invalid type', type);
+	fn.on = function(types, fn, capture) {
+		if( typeof(types) !== 'string' ) return console.error('invalid event type', types);
 		if( typeof(fn) !== 'function' ) return console.error('invalid fn', fn);
+		
+		capture = (capture===true) ? true : false;
+		types = types.split(' ');
+		
 		return this.each(function() {
-			this.addEventListener(type, fn, bubble);
+			var el = this;
+			
+			for(var i=0; i < types.length; i++) {
+				var type = types[i];
+				
+				if(('on' + type) in el || type.toLowerCase() == 'transitionend') {	// if dom events			
+					if( el.addEventListener ) {
+						el.addEventListener(type, fn, capture);
+
+						if( type.toLowerCase() == 'transitionend' && Device.is('webkit') ) {
+							el.addEventListener('webkitTransitionEnd', fn, capture);
+						}
+					} else if( el.attachEvent ) {
+						el.attachEvent('on' + type, fn);
+					}
+				} else {
+					var dispatcher = this.__alien_dispatcher__;
+					if( !dispatcher ) dispatcher = this.__alien_dispatcher__ = new EventDispatcher(this);
+					dispatcher.on(type, fn, capture);
+				}
+			}			
 		});
 	};
 	
-	fn.off = function(type, fn, bubble) {
-		if( typeof(type) !== 'string' ) return console.error('invalid type', type);
+	fn.off = function(types, fn, capture) {
+		if( typeof(types) !== 'string' ) return console.error('invalid event type', types);
 		if( typeof(fn) !== 'function' ) return console.error('invalid fn', fn);
-		return this.each(function() {
-			this.removeEventListener(type, fn, bubble);
+		
+		capture = (capture===true) ? true : false;
+		types = types.split(' ');
+		
+		return this.each(function() {			
+			var el = this;
+			
+			for(var i=0; i < types.length; i++) {
+				var type = types[i];
+				
+				if(('on' + type) in el || type.toLowerCase() == 'transitionend') {	// if dom events
+					if( el.removeEventListener ) {
+						el.removeEventListener(type, fn, capture);
+
+						if( type.toLowerCase() == 'transitionend' && Device.is('webkit') )
+							el.removeEventListener('webkitTransitionEnd', fn, capture);
+					} else if( el.attachEvent ) {
+						el.detachEvent('on' + type, fn);
+					}
+				} else {
+					var dispatcher = this.__alien_dispatcher__;
+					if( !dispatcher ) continue;
+					
+					dispatcher.un(type, fn, capture);
+				}
+			}
 		});
 	};
 	
 	// TODO: 미구현
-	fn.fire = function(type, values) {
+	fn.fire = function(types, values) {
+		if( !types ) return console.error('invalid event type:', types);
+		
+		values = values || {};
+		types = types.split(' ');
+		
 		return this.each(function() {
-			console.log('fired', this, type, values);
+			var e, el = this;
+			
+			for(var i=0; i < types.length; i++) {
+				var type = types[i];
+				
+				if(('on' + type) in el) {	// if dom events
+					// eventName, bubbles, cancelable
+					if( document.createEvent ) {
+						e = document.createEvent('Event');
+						e.initEvent(type, ((values.bubbles===true) ? true : false), ((values.cancelable===true) ? true : false));
+					} else if( document.createEventObject ) {
+						e = document.createEventObject();
+					} else {
+						return console.error('this browser does not supports manual dom event fires');
+					}
+			
+					for(var k in values) {
+						if( !values.hasOwnProperty(k) ) continue;
+						var v = values[k];
+						try {
+							e[k] = v;
+						} catch(err) {
+							console.error('[WARN] illegal event value', e, k);
+						}
+					}
+					e.values = values;
+					e.src = this;
+
+					if( el.dispatchEvent ) {
+						el.dispatchEvent(e);
+					} else {
+						e.cancelBubble = ((values.bubbles===true) ? true : false);
+						el.fireEvent('on' + type, e );
+					}
+				} else {
+					var dispatcher = this.__alien_dispatcher__;
+					if( !dispatcher ) dispatcher = this.__alien_dispatcher__ = new EventDispatcher(this);
+					e = dispatcher.fireSync(type, values);
+				}
+			}
 		});
 	};
 	
@@ -1244,44 +1336,36 @@ $.ready(function() {
 			
 			if( mutation.type === 'childList' ) {
 				var target = mutation.target;
-				var tel = target.__handler__;
+				var tel = $(target);
 				var added = mutation.addedNodes;
 				var removed = mutation.removedNodes;
 				
 								
 				if( removed ) {
 					for(var i=0; i < removed.length; i++) {
-						var source = removed[i].__handler__;
+						var source = $(removed[i]);
 						
-						if( tel ) {
-							tel.fire('removed', {
-								removed: removed[i]
-							});
-						}
+						tel.fire('removed', {
+							removed: removed[i]
+						});
 						
-						if( source ) {
-							source.fire('detached', {
-								from: target
-							});
-						}
+						source.fire('detached', {
+							from: target
+						});
 					}
 				}
 				
 				if( added ) {
 					for(var i=0; i < added.length; i++) {
-						var source = added[i].__handler__;
+						var source = $(added[i]);
 							
-						if( tel ) {
-							tel.fire('added', {
-								added: added[i]
-							});
-						}
+						tel.fire('added', {
+							added: added[i]
+						});
 						
-						if( source ) {
-							source.fire('attached', {
-								to: target
-							});
-						}
+						source.fire('attached', {
+							to: target
+						});
 					}
 				}
 			}
