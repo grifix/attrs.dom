@@ -8,6 +8,11 @@
 		
 		<title>DOM Practice</title>
 
+		<script type="text/javascript" src="src/DateUtil.js"></script>
+		<script type="text/javascript" src="src/CSS3Calibrator.js"></script>
+		<script type="text/javascript" src="src/Animator.js"></script>
+		<script type="text/javascript" src="src/StyleSession.js"></script>
+		<script type="text/javascript" src="src/Template.js"></script>
 		<script type="text/javascript" src="src/jojequery.js"></script>
 		
 		<script type="text/javascript">
@@ -16,7 +21,8 @@
 				console.log('DOM Ready!');
 				
 				
-				if( false ) {				
+								
+				if( true ) {
 					var el = $('#content');
 					console.log('el', el);
 					console.log('el instanceof $', (el instanceof $));
@@ -211,14 +217,93 @@
 					
 					console.log($('#content').bg('url("http://www.w3schools.com/images/w3logotest2.png")').bg());
 					console.log($('#content').font(20).font());
+					
+					console.log($('div').at(1).out());
+					
+					console.log($('#header').visit(function(ctx) {
+						console.log('visiting', this);
+					}, 'down', false));
+					
+				
+					console.log($('.gnb > a').wrap('div.wrapping').out());
+					
+					
+					// tpl
+					var dataset = {
+						length: 2,
+						rows: [
+							{
+								id: '1',
+								title: '제목',
+								description: '내용',
+								date: new Date(),
+								price: 1500000,
+								flag: true
+							}, {
+								id: '2',
+								title: '제목2',
+								description: '내용2',
+								date: new Date(),
+								price: 1500000,
+								flag: false
+							}
+						]
+					};
+				
+					var data = {
+						id: '3',
+						title: '제목3',
+						description: '내용3',
+						date: new Date(),
+						price: 340000,
+						flag: true
+					};
+					
+					console.log($('#tpl-test').bind(dataset));
+					console.log($('#tpl').tpl(dataset.rows).appendTo('#content'));
+					console.log($('#tpl').tpl(data).appendTo('#content'));
+					console.log($('#tpl').arg('만세!').tpl(function(d) {
+						return [{
+							id: d,
+							title: '제목' + d,
+							description: '내용' + d,
+							date: new Date(),
+							price: 340000,
+							flag: true		
+						}, {
+							id: d,
+							title: '제목2' + d,
+							description: '내용2' + d,
+							date: new Date(),
+							price: 140000,
+							flag: false		
+						}]
+					}).appendTo('#content'));
 				}
+				
+				/*
+				$('.gnb > a').on('click added', function(e) {
+					console.log('event fired', e.type, e);
+				}).fire('added', {added:1}).fire('click', {custom:1});
+				*/
+				
 			});
 		//]]>
 		</script>
 	</head>
 	<body>
+		<script id="tpl" type="text/html">
+			<div id="{id}" class="item" title="{title}" size="{length}">
+				<h1>{title}</h1>
+				<em>{date:date}</em>
+				<p>{description}</p>
+				<tpl if="this.flag">flag is true</tpl>
+				<span class="price">{price:currency}</span>
+			</div>
+		</script>
+		
 		<div id="header">	
-			<a id="logo" href="#">&nbsp;</a>
+			<a id="logo" href="#">Logo</a>
 			
 			<div class="gnb">
 				<a name="about" type="text" class="embos" href="#about">ABOUT</a>
@@ -240,6 +325,18 @@
 			</div>
 			<div id="content">
 				content!
+				<!-- 주석 -->
+				<a>link</a>
+				
+				<div id="tpl-test" length="{length}" style="border: 1px solid darkblue;">
+					<tpl for="rows">
+						<h1>{title}</h1>
+						<em>{date:date}</em>
+						<p>{description}</p>
+						<tpl if="this.flag">flag is true</tpl>
+						<span class="price">{price:currency}</span>
+					</tpl>
+				</div>
 			</div>
 			<div id="rside">
 				<div class="slot"></div>

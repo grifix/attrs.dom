@@ -139,7 +139,7 @@ var $ = (function() {
 		return ((typeof(html) === 'string') && (html.match(/(<([^>]+)>)/ig) || ~html.indexOf('\n'))) ? true : false;
 	}
 	
-	function evalHtml(html) {
+	function evalHtml(html, includeall) {
 		var els = [];		
 		if( typeof(html) !== 'string' ) return els;
 		
@@ -150,10 +150,10 @@ var $ = (function() {
 		else el = document.createElement('div');
 
 		el.innerHTML = html;
-		var children = el.childNodes;
+		var children = (includeall) ? el.childNodes : el.children;
 		if( children ) {
 			for(var i=0; i < children.length; i++) {
-				els.push(el.childNodes[i]);
+				els.push(children[i]);
 			}
 
 			els.forEach(function(item) {
@@ -166,6 +166,13 @@ var $ = (function() {
 	
 	function create(selector, html) {
 		if( !selector || typeof(selector) !== 'string' ) return console.error('invalid parameter', selector);
+		
+		if( isHtml(selector) ) {
+			var el = evalHtml(selector)[0];
+			if( !el ) return null;
+			if( html ) el.innerHTML = html;
+			return el; 
+		}
 		
 		var arr = selector.split('.');
 		var tag = arr[0];
@@ -348,12 +355,14 @@ var $ = (function() {
 	
 	var fn = $.fn;
 	
+	var merge = $.util.merge;
 	var accessor = $.util.accessor;
 	var array_return = $.util.array_return;
 	var resolve = $.util.resolve;
 	var data = $.util.data;
 	var create = $.util.create;
 	var isElement = $.util.isElement;
+	var evalHtml = $.util.evalHtml;
 		
 	function stringify(el) {
 		if( el.outerHTML ) {
@@ -566,6 +575,8 @@ var $ = (function() {
 		if( arguments.length === 1 ) {
 			var arr = [];
 			this.each(function() {
+				var session = new StyleSession(this[0]);
+				
 				arr.push(this.style[key]);
 			});
 			return array_return(arr);
@@ -667,6 +678,14 @@ var $ = (function() {
 		return this.all();
 	};
 	
+	fn.contents = function() {
+		var arr = [];
+		this.each(function() {
+			merge.call(arr, this.childNodes);	
+		});
+		return $(arr).context(this);	
+	};
+	
 	fn.one = function(selector) {
 		if( !arguments.length ) selector = ':scope > *';
 		return $(selector, this, true).context(this);
@@ -695,6 +714,44 @@ var $ = (function() {
 		return $(items).context(this);
 	};
 	
+	fn.visit = function(fn, direction, containSelf, ctx) {
+		if( typeof(fn) !== 'function' ) return console.error('fn must be a function');
+		
+		if( direction && !~['up', 'down'].indexOf(direction) ) return console.error('invalid direction', direction);
+		containSelf = (containSelf === false) ? false : true;
+		ctx = ctx || this;
+		
+		return this.each(function() {			
+			if( containSelf && fn.call(this, ctx) === false ) return;
+	
+			var propagation;
+			if( direction === 'up' ) {
+				propagation = function(el) {
+					var p = el.parentNode;
+					if( p ) {
+						if( fn.call(p, ctx) !== false ) {
+							propagation(p);
+						}
+					}
+				};
+			} else {
+				propagation = function(el) {
+					var argc = el.children;
+					if( argc ) {
+						for(var i=0; i < argc.length;i++) {
+							var cel = argc[i];
+							if( fn.call(cel, ctx) !== false ) {
+								propagation(cel);
+							}
+						}
+					}
+				};
+			}
+
+			propagation(this);
+		});
+	};
+	
 	fn.contains = function(child) {
 		var contains = false;
 		this.each(function() {
@@ -708,6 +765,18 @@ var $ = (function() {
 			if( this !== child && this.contains(child) ) contains = true;
 		});		
 		return contains;
+	};
+	
+	fn.first = function() {
+		return $(this[0]).context(this);
+	};
+	
+	fn.last = function() {
+		return $(this[this.length - 1]).context(this);
+	};
+	
+	fn.at = function(index) {
+		return $(this[index]).context(this);
 	};
 	
 	// TODO : 구현미비
@@ -729,26 +798,35 @@ var $ = (function() {
 	};
 	
 	// creation
-	fn.clone = function() {
+	fn.clone = function(args) {
+		if( !args ) args = [null];
+		if( typeof(args) === 'number') args = new Array(args);
+		if( args && typeof(args.length) !== 'number' ) args = [args];
+		
 		var arr = [];
 		this.each(function() {
-			arr.push(this.cloneNode(true));
+			for(var i=0, len=args.length; i < len; i++) {
+				var el = this.cloneNode(true);
+				
+				data.call(el, 'arg', args[i]);
+				arr.push(el);
+			}
 		});
 		return $(arr).context(this);
 	};
 	
 	fn.create = function(accessor, args, fn) {
 		if( typeof(accessor) !== 'string' ) return console.error('invalid accessor', accessor);
-		var arr = [];
 		
+		if( !args ) args = [null];
+		if( typeof(args) === 'number') args = new Array(args);
+		if( args && typeof(args.length) !== 'number' ) args = [args];
+		
+		var arr = [];		
 		this.each(function() {
-			if( !args ) args = [null];
-			if( args && typeof(args.length) !== 'number' ) args = [args];
-			
-			var self = this;
 			for(var i=0, len=args.length; i < len; i++) {
 				var el = create.call(this, accessor);
-				self.appendChild(el);
+				this.appendChild(el);
 				
 				data.call(el, 'arg', args[i]);
 				arr.push(el);
@@ -788,6 +866,41 @@ var $ = (function() {
 			var p = this.parentNode;
 			if( p ) p.removeChild(this);
 		});
+	};
+	
+	fn.unwrap = function() {
+		return this.each(function() {
+			var p = this.parentNode;
+			if( !p ) return;
+			
+			var nodes = p.childNodes;
+			var argc = [];
+			if( nodes ) for(var a=0; a < nodes.length;a++) argc.push(nodes[a]);
+
+			if( argc ) {
+				if( p.parentNode ) {
+					for(var a=0; a < argc.length;a++) {
+						p.parentNode.insertBefore(argc[a], p);
+					}
+					p.parentNode.removeChild(p);
+				}
+			}
+		});
+	};
+	
+	fn.wrap = function(accessor) {
+		var el = create(accessor);
+		if( !isElement(el) ) return console.error('invalid accessor or html', accessor);
+				
+		var arr = [];
+		this.each(function() {
+			var p = this.parentNode;
+			var newp = el.cloneNode(true);
+			if( p ) p.insertBefore(newp, this);
+			newp.appendChild(this);
+			arr.push(newp);
+		});		
+		return $(arr).context(this);
 	};
 	
 	
@@ -898,7 +1011,7 @@ var $ = (function() {
 	fn.fadeOut = function() {
 		return this.fade(1, 0);
 	};
-	
+		
 	
 	// size & position & status
 	fn.staged = function(index) {
@@ -962,33 +1075,6 @@ var $ = (function() {
 		});
 		return array_return(arr);
 	};
-	
-	(function() {
-		var type1 = [
-			'offsetWidth', 'offsetHeight', 'clientWidth', 'clientHeight', 'scrollWidth', 'scrollHeight'
-		];
-		
-		var type2 = [
-			'border', 'color', 'margin', 'padding', 'width', 'minWidth', 'maxWidth', 'height', 'minHeight', 'maxHeight',
-			'flex', 'float', 'opacity', 'zIndex'
-		];
-		
-		type1.forEach(function(name) {
-			fn[name] = (function(name) {
-				return function() {
-					return type1.call(this, name, arguments);
-				};
-			})();
-		});
-		
-		type2.forEach(function(name) {
-			fn[name] = (function(name) {
-				return function() {
-					return type2.call(this, name, arguments);
-				};
-			})();
-		});
-	})();	
 	
 	// misc
 	fn.bg = function(bg) {
@@ -1077,26 +1163,75 @@ var $ = (function() {
 	// animation
 	fn.anim = function(options, scope) {
 		return new Animator(this, options, scope || this);
-	};
-	
+	};	
 	
 	// template
-	fn.bind = function(values, functions) {
-		var arr = [];
-		this.each(function() {
-			var result = new Template(this).bind(values, functions);
-			arr.push(result);
+	fn.bind = function(data, functions) {
+		return this.each(function() {
+			new Template(this).bind(data, functions);
 		});
-		return array_return(arr);
 	};
 	
-	fn.tpl = function() {
-		var arr = [];
-		this.each(function() {
-			arr.push(new Template(this));
-		});
-		return array_return(arr);
+	fn.tpl = function(data, functions) {
+		if( !arguments.length ) {
+			var arr = [];
+			this.each(function() {
+				arr.push(new Template(this.cloneNode(true)));
+			});
+			return array_return(arr);
+		} else if( data ) {
+			var arr = [];
+			this.each(function() {
+				var d = data;
+				if( typeof(d) === 'function' ) d = resolve.call(this, d);
+				
+				if( typeof(d.length) !== 'number' ) d = [d];
+				
+				for(var i=0; i < d.length; i++) {
+					var el = this.cloneNode(true);
+					if( el.tagName.toLowerCase() === 'script' ) {
+						el = evalHtml(el.innerText)[0];
+					}
+					
+					new Template(el).bind(d[i], functions);
+					arr.push(el);
+				}
+			});
+			return $(arr).context(this);
+		} else {
+			return console.error('illegal data', data);
+		}
 	};
+	
+	
+	// for comfortable use
+	(function() {
+		// TODO : 에러남
+		var type1_arr = [
+			'offsetWidth', 'offsetHeight', 'clientWidth', 'clientHeight', 'scrollWidth', 'scrollHeight'
+		];
+		
+		var type2_arr = [
+			'border', 'color', 'margin', 'padding', 'width', 'minWidth', 'maxWidth', 'height', 'minHeight', 'maxHeight',
+			'flex', 'float', 'opacity', 'zIndex'
+		];
+		
+		type1_arr.forEach(function(name) {
+			fn[name] = (function(name) {
+				return function() {
+					return type1.call(this, name, arguments);
+				};
+			})();
+		});
+		
+		type2_arr.forEach(function(name) {
+			fn[name] = (function(name) {
+				return function() {
+					return type2.call(this, name, arguments);
+				};
+			})();
+		});
+	})();	
 })($);
 
 
