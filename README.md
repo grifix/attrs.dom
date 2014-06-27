@@ -1,4 +1,4 @@
-jojequery
+dom.alien
 =========
 
-pattern practice
+dom selector package for ui.alien
