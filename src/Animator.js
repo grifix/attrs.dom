@@ -64,14 +64,14 @@ var Animator = (function() {
 	}
 	
 	// class Animator
-	function Animator(el, options, scope) {
-		if( EL.isElement(el) ) el = $(el);
-		if( !(el instanceof EL) ) throw new Error('Animator:invalid element');
+	function Animator(el, options, scope, exit) {
+		if( !(el instanceof $) ) el = $(el);
 		this.el = el;
 		if( scope ) this.scope(scope);
 		this._chain = [];
 		this.index = -1;
 		if( options ) this.chain(options);
+		this._exit = exit || this.scope();
 	}
 
 	Animator.DEFAULT_DURATION = 250;
@@ -105,6 +105,11 @@ var Animator = (function() {
 		},
 		length: function() {
 			return this._chain.length;
+		},
+		exit: function(exit) {
+			if( !arguments.length ) return this._exit;
+			this._exit = exit;
+			return this;
 		},
 		reset: function(options) {
 			this.stop();
@@ -180,7 +185,7 @@ var Animator = (function() {
 			setTimeout(function() {
 				if( !finished ) {
 					finished = true;
-					console.log('animation not affected', options);
+					console.log('animation no affects', options);
 					self.el.un('transitionend', fn);
 					if( callback ) callback.call(self.scope(), self);
 				}
@@ -191,7 +196,7 @@ var Animator = (function() {
 		first: function() {
 			this.index = -1;
 			return this;
-		},		
+		},
 		last: function() {
 			this.index = -1;
 			return this;

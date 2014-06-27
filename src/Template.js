@@ -35,7 +35,6 @@ var Template = (function() {
 	// class Template
 	function Template(el) {
 		this.el = el;
-		this.html = el.innerHTML;
 	}
 	
 	Template.translators = TRANSLATORS;
@@ -45,8 +44,7 @@ var Template = (function() {
 			o = o || {};
 			fns = fns || {};
 
-			var el = this.el; //document.createElement('body');			
-			//el.innerHTML = this.html;
+			var el = this.el;
 
 			var parseKey = function(k) {
 				if( typeof(k) !== 'string' ) return null;

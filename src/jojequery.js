@@ -812,9 +812,8 @@ var $ = (function() {
 		var arr = [];
 		this.each(function() {
 			for(var i=0, len=args.length; i < len; i++) {
-				var el = this.cloneNode(true);
-				
-				data.call(el, 'arg', args[i]);
+				var el = this.cloneNode(true);				
+				$(el).data('arg', args[i]).save('#create');
 				arr.push(el);
 			}
 		});
@@ -833,13 +832,50 @@ var $ = (function() {
 			for(var i=0, len=args.length; i < len; i++) {
 				var el = create.call(this, accessor);
 				this.appendChild(el);
-				
-				data.call(el, 'arg', args[i]);
+				$(el).data('arg', args[i]).save('#create');
 				arr.push(el);
 			}
 		});
 		
 		return $(arr).context(this);
+	};
+	
+	fn.save = function(name) {
+		return this.each(function() {
+			var attrs = this.attributes;
+			var o = {};
+			for(var i= attrs.length-1; i>=0; i--) {
+				o[attrs[i].name] = attrs[i].value;
+			}
+			
+			var o = {
+				html: this.innerHTML,
+				attrs: o
+			};
+			
+			data.call(this, 'save.' + name, o);
+			data.call(this, 'save.#last', o);
+		});
+	};
+	
+	fn.restore = function(name) {
+		return this.each(function() {
+			var saved = name ? data.call(this, 'save.' + name) : data.call(this, 'save.#last');
+			
+			if( !saved ) return ~name.indexOf('#') ? null : console.warn('no saved status', name || '');			
+			this.innerHTML = saved.html || '';
+			
+			// remove current attributes
+			var attrs = this.attributes;
+			for(var i= attrs.length-1; i>=0; i--) {
+				this.removeAttribute(attrs[i].name);
+			}
+			
+			attrs = saved.attrs;
+			for(var k in attrs) {
+				this.setAttribute(k, attrs[k]);
+			}
+		});
 	};
 	
 	fn.append = function(items, reference, adjust) {
@@ -906,7 +942,7 @@ var $ = (function() {
 		var arr = [];
 		this.each(function() {
 			var p = this.parentNode;
-			var newp = el.cloneNode(true);
+			var newp = $(el).clone()[0];
 			if( p ) p.insertBefore(newp, this);
 			newp.appendChild(this);
 			arr.push(newp);
@@ -1287,12 +1323,18 @@ var $ = (function() {
 	
 	
 	// animation
-	fn.anim = function(options, scope) {
-		return new Animator(this, options, scope || this);
-	};	
+	fn.animate = function(options, callback) {
+		return new Animator(this, options, this, this).run(callback).exit();
+	};
+	
+	fn.animator = function(options, scope) {
+		return new Animator(this, options, scope || this, this);
+	};
+		
 	
 	// template
 	fn.bind = function(data, functions) {
+		this.restore('#bind').save('#bind');
 		return this.each(function() {
 			new Template(this).bind(data, functions);
 		});
@@ -1302,7 +1344,7 @@ var $ = (function() {
 		if( !arguments.length ) {
 			var arr = [];
 			this.each(function() {
-				arr.push(new Template(this.cloneNode(true)));
+				arr.push(new Template($(this).clone()[0]));
 			});
 			return array_return(arr);
 		} else if( data ) {
@@ -1314,7 +1356,7 @@ var $ = (function() {
 				if( typeof(d.length) !== 'number' ) d = [d];
 				
 				for(var i=0; i < d.length; i++) {
-					var el = this.cloneNode(true);
+					var el = $(this).clone()[0];
 					if( el.tagName.toLowerCase() === 'script' ) {
 						el = evalHtml(el.innerText)[0];
 					}

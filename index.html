@@ -23,7 +23,7 @@
 				
 				
 								
-				if( true ) {
+				if( false ) {
 					var el = $('#content');
 					console.log('el', el);
 					console.log('el instanceof $', (el instanceof $));
@@ -294,6 +294,12 @@
 					
 					
 					$('.gnb > a').invisible().hide().show();
+					
+					// save & restore
+					$('#tpl-test').save(1).bind(dataset).restore().bind(dataset).save(2).html('test').restore(2).restore(1);
+					$('#tpl-test').bind(dataset).bind(dataset2);
+					$('#logo').create('div.item', [1,2,3,4,5]).restore();
+					$.create('div.item').html('test!').clone([1,2,3,4,5]).appendTo('#logo').html('test2').restore();
 				}
 			});
 		//]]>
