@@ -1,0 +1,16 @@
+.DS_Store
+.git*
+.idea
+.project
+.DS_Store
+._*
+Makefile
+Gruntfile.js
+addons/
+build/
+deprecated/
+docs/
+examples/
+node_modules/
+support/
+test/

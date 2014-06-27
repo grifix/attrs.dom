@@ -6,24 +6,25 @@
 		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
 		<meta name="author" content="joje.attrs@gmail.com">
 		
-		<title>DOM Practice</title>
+		<title>DOM.Alien</title>
 
-		<script type="text/javascript" src="src/DateUtil.js"></script>
+		<!-- <script type="text/javascript" src="src/DateUtil.js"></script>
 		<script type="text/javascript" src="src/EventDispatcher.js"></script>
 		<script type="text/javascript" src="src/CSS3Calibrator.js"></script>
 		<script type="text/javascript" src="src/Animator.js"></script>
 		<script type="text/javascript" src="src/StyleSession.js"></script>
 		<script type="text/javascript" src="src/Template.js"></script>
-		<script type="text/javascript" src="src/jojequery.js"></script>
+		<script type="text/javascript" src="src/Selector.js"></script> -->
+			
+
+		<script type="text/javascript" src="build/dom.alien.min.js"></script>
 		
 		<script type="text/javascript">
 		//<![CDATA[
-			$(document).ready(function(e) {
+			$.ready(function(e) {
 				console.log('DOM Ready!');
-				
-				
 								
-				if( false ) {
+				if( true ) {
 					var el = $('#content');
 					console.log('el', el);
 					console.log('el instanceof $', (el instanceof $));
@@ -245,6 +246,20 @@
 								description: '내용2',
 								date: new Date(),
 								price: 1500000,
+								flag: false
+							}
+						]
+					};
+					
+					var dataset2 = {
+						length: 1,
+						rows: [
+							{
+								id: 'asdasd',
+								title: '새로운제목',
+								description: '새로운내용',
+								date: new Date(),
+								price: 23400,
 								flag: false
 							}
 						]
