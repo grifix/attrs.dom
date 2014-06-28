@@ -30,7 +30,9 @@ var $ = (function() {
 	
 	var __root__ = {};
 	function $(selector, criteria, single, context) {
-		if( selector === document ) return $;
+		console.log('selector', selector);
+		if( selector instanceof $ ) return selector;
+		if( selector === document || selector === window ) return $;
 		if( selector !== __root__ ) return new Selector(selector, criteria, single, context);
 	}
 	
@@ -113,16 +115,6 @@ var $ = (function() {
 		}
 	}
 	
-	function accessor(el) {
-		var tag = el.tagName.toLowerCase();
-		var id = el.id;
-		var cls = el.className.split(' ').join('.');
-		id = id ? ('#' + id) : '';
-		cls = cls ? ('.' + cls) : '';
-		
-		return tag + id + cls;
-	}
-	
 	function resolve(value) {
 		if( typeof(value) !== 'function' ) return value;
 		return value.call(this, data.call(this, 'arg'));
@@ -169,17 +161,20 @@ var $ = (function() {
 		return els;
 	}
 	
-	function create(selector, html) {
-		if( !selector || typeof(selector) !== 'string' ) return console.error('invalid parameter', selector);
+	function accessor(el) {
+		var tag = el.tagName.toLowerCase();
+		var id = el.id;
+		var cls = el.className.split(' ').join('.');
+		id = id ? ('#' + id) : '';
+		cls = cls ? ('.' + cls) : '';
 		
-		if( isHtml(selector) ) {
-			var el = evalHtml(selector)[0];
-			if( !el ) return null;
-			if( html ) el.innerHTML = html;
-			return el; 
-		}
+		return tag + id + cls;
+	}
+	
+	function assemble(accessor) {
+		if( !accessor || typeof(accessor) !== 'string' ) return console.error('invalid accessor', accessor);
 		
-		var arr = selector.split('.');
+		var arr = accessor.split('.');
 		var tag = arr[0];
 		var id;
 		var classes = arr.splice(1).join(' ').trim();
@@ -187,15 +182,59 @@ var $ = (function() {
 		if( ~tag.indexOf('#') ) {
 			var t = tag.split('#');
 			tag = t[0];
-			id = t[1];			
+			id = t[1];
 		}
 		
-		var el = document.createElement(tag);
-		if( id ) el.id = id;
-		if( classes ) el.className = classes;
+		return {
+			accessor: accessor,
+			tag: tag && tag.toLowerCase() || '',
+			id: id || '',
+			classes: classes || ''
+		};
+	}
+	
+	function match(el, accessor) {
+		var o = assemble(accessor);
+		var tag = o.tag;
+		var classes = o.classes;
+		var id = o.id;
+				
+		if( !tag || el.tagName.toLowerCase() === tag ) {
+			if( !id || el.id === id ) {
+				return !classes || $(el).is(classes);
+			}
+		}
 		
-		if( typeof(html) === 'string' ) el.innerHTML = html;
-		else if( typeof(html) === 'function' ) html.call(el, el);
+		return false;
+	}
+	
+	function create(accessor, contents) {
+		if( !accessor || typeof(accessor) !== 'string' ) return console.error('invalid parameter', accessor);
+		
+		var el;
+		if( isHtml(accessor) ) {
+			el = evalHtml(accessor)[0];
+			if( !el ) return null;
+			if( html ) el.innerHTML = html;
+			return el; 
+		} else {		
+			var o = assemble(accessor);
+			var tag = o.tag;
+			var classes = o.classes;
+			var id = o.id;
+			
+			if( !tag ) return console.error('invalid parameter', accessor);
+		
+			el = document.createElement(tag);
+			if( id ) el.id = id;
+			if( classes ) el.className = classes;
+		}
+		
+		if( typeof(contents) === 'function' ) contents = contents.call(el);
+		
+		if( typeof(contents) === 'string' ) el.innerHTML = contents;
+		else if( isElement(contents) ) el.appendChild(contents);
+		else if( contents instanceof $ ) contents.appendTo(el);
 		
 		return el;
 	}
@@ -204,11 +243,13 @@ var $ = (function() {
 		merge: merge,
 		data: data,
 		isNode: isNode,
+		match: match,
 		isElement: isElement,
 		isHtml: isHtml,
 		evalHtml: evalHtml,
 		create: create,
 		accessor: accessor,
+		assemble: assemble,
 		array_return: array_return,
 		resolve: resolve
 	};
@@ -234,11 +275,14 @@ var $ = (function() {
 		if( single === true ) this.single = single = true;
 		if( typeof(selector) === 'string' ) {
 			var items = [];
+			
+			//console.log('selector', selector);
+			
 			if( criteria instanceof $ ) {
 				var self = this;
 				criteria.each(function() {
 					if( single && self.length > 0 ) return;
-					
+				
 					if( single ) self.push(this.querySelector(selector));
 					else merge.call(self, this.querySelectorAll(selector));
 				});
@@ -611,10 +655,10 @@ var $ = (function() {
 			this.each(function() {
 				arr.push(this.className.trim().split(' '));
 			});			
-			return arr;			
+			return arr;
 		}
-		
-		return this.each(function() {
+				
+		return this.each(function() {			
 			var classes = resolve.call(this, cls);
 			
 			var el = this;
@@ -627,19 +671,19 @@ var $ = (function() {
 			
 				var args = el.className.trim().split(' ');
 				for(var i=0; i < classes.length; i++) {
-					var cls = classes[i];
-					if( cls ) {
-						if( !flag && ~args.indexOf(cls) ) args.splice(args.indexOf(cls), 1);
-						else if( flag && !~args.indexOf(cls) ) args.push(cls);
+					var c = classes[i];
+					if( c ) {
+						if( !flag && ~args.indexOf(c) ) args.splice(args.indexOf(c), 1);
+						else if( flag && !~args.indexOf(c) ) args.push(c);
 					}
 				}
 
-				el.className = args.join(' ');
+				el.className = args.join(' ').trim();
 			} else {
 				el.className = '';
 				el.removeAttribute('class');
 				if( Array.isArray(classes) ) classes = classes.join(' ').trim();
-				if( classes ) el.className = classes;
+				if( classes ) el.className = classes.trim();
 			}
 		});
 	};	
@@ -649,7 +693,18 @@ var $ = (function() {
 	};
 	
 	fn.is = fn.hasClass = function(s) {
-		return (s && ~this[0].className.split(' ').indexOf(s)) ? true : false;
+		if( !s || typeof(s) !== 'string' ) return s;
+		s = s.split(' ');
+		
+		var hasnot = false;
+		this.each(function() {
+			for(var i=0; i < s.length; i++) {
+				var cls = s[i];
+				if( !cls || !~this.className.split(' ').indexOf(cls) ) hasnot = true;
+			}
+		});
+		
+		return !hasnot;
 	},
 	
 	fn.rc = fn.removeClass = function(s) {
@@ -676,12 +731,21 @@ var $ = (function() {
 	};
 	
 	fn.all = fn.find = function(selector) {
-		if( !arguments.length ) selector = ':scope > *';
+		if( !arguments.length ) selector = '*';
 		return $(selector, this).context(this);
 	};
 	
+	fn.one = function(selector) {
+		if( !arguments.length ) selector = '*';
+		return $(selector, this, true).context(this);
+	};
+	
 	fn.children = function() {
-		return this.all();
+		var arr = [];
+		this.each(function() {
+			merge.call(arr, this.children);	
+		});
+		return $(arr).context(this);
 	};
 	
 	fn.contents = function() {
@@ -692,30 +756,32 @@ var $ = (function() {
 		return $(arr).context(this);	
 	};
 	
-	fn.one = function(selector) {
-		if( !arguments.length ) selector = ':scope > *';
-		return $(selector, this, true).context(this);
+	fn.filter = fn.except = function(fn) {
+		return this.subset(fn, false);
 	};
 	
-	fn.filter = function(fn, reverse) {
+	fn.subset = function(fn, positive) {
 		var items = [];
 		
-		var compare = (reverse === true) ? false : true;
+		positive = (positive === false) ? false : true;
 		
 		if( typeof(fn) === 'string' ) {
 			var selector = ':scope > ' + fn.trim();
 			fn = function() {
-				var p = this.parentNode;				
+				var p = this.parentNode;
 				var q = p && p.querySelectorAll(selector);
-				var exist = (Array.prototype.indexOf.call(q, this) >= 0);
-
-				return exist;
+				return (Array.prototype.indexOf.call(q, this) >= 0);
 			}
 		}
 		
 		this.each(function() {
 			var result = fn.apply(this, arguments);
-			if( result !== compare ) items.push(this);
+			if( positive ) {
+				if( result === true ) items.push(this);
+			} else {
+				if( result !== true ) items.push(this);
+			}
+			
 		});
 		return $(items).context(this);
 	};
@@ -878,33 +944,67 @@ var $ = (function() {
 		});
 	};
 	
-	fn.append = function(items, reference, adjust) {
-		if( !items ) return console.error('invalid items', items);
-		if( !(items instanceof $) ) items = $(items).context(this);
+	fn.append = function(items) {
+		if( !items ) return console.error('items was null', items);
 				
 		return this.each(function() {
+			var els = resolve.call(this, items);
+			
+			if( !(els instanceof $) ) els = $(els);
+			
 			var target = this;
-			items.each(function() {
+			els.each(function() {
 				target.appendChild(this);
 			});
 		});
 	};
 	
-	fn.before = function(items) {
+	fn.prepend = function(items) {
+		if( !items ) return console.error('items was null', items);
+				
+		return this.each(function() {
+			var els = resolve.call(this, items);
+			
+			if( !(els instanceof $) ) els = $(els);
+			
+			var target = this;
+			els.each(function() {
+				if( target.childNodes.length ) target.insertBefore(this, target.childNodes[0]);
+				else target.appendChild(this);
+			});
+		});		
 	};
 	
-	fn.after = function(items) {
+	fn.before = fn.insertBefore = function(items) {
+	};
+	
+	fn.after = fn.insertAfter = function(items) {
 	};
 	
 	fn.appendTo = function(target) {
-		if( !target ) return console.error('invalid target', target);
-		if( typeof(target) === 'string' ) target = document.querySelector(target);
-		if( target instanceof $ ) target = target[target.length - 1];	// 어짜피 마지막에만 붙으니 그냥 마지막에다가 붙인다.
-		
-		if( typeof(target.appendChild) !== 'function' ) return console.error('invalid target', target);
+		if( !target ) return console.error('target was null', target);
 		
 		return this.each(function() {
-			target.appendChild(this);
+			var dest = resolve.call(this, target);
+			
+			if( typeof(dest) === 'string' ) dest = $(dest);
+			if( dest instanceof $ ) dest = dest[dest.length - 1];
+			
+			dest.appendChild(this);
+		});
+	};
+	
+	fn.prependTo = function(target) {
+		if( !target ) return console.error('target was null', target);
+				
+		return this.each(function() {
+			var dest = resolve.call(this, target);
+			
+			if( typeof(dest) === 'string' ) dest = $(dest);
+			if( dest instanceof $ ) dest = dest[dest.length - 1];
+			
+			if( dest.childNodes.length ) dest.insertBefore(this, dest.childNodes[0]);
+			else dest.appendChild(this);
 		});
 	};
 	
@@ -969,15 +1069,19 @@ var $ = (function() {
 					if( el.addEventListener ) {
 						el.addEventListener(type, fn, capture);
 
-						if( type.toLowerCase() == 'transitionend' && Device.is('webkit') ) {
+						if( type.toLowerCase() == 'transitionend' ) {
 							el.addEventListener('webkitTransitionEnd', fn, capture);
 						}
 					} else if( el.attachEvent ) {
 						el.attachEvent('on' + type, fn);
 					}
 				} else {
-					var dispatcher = this.__alien_dispatcher__;
-					if( !dispatcher ) dispatcher = this.__alien_dispatcher__ = new EventDispatcher(this);
+					var dispatcher = data.call(this, 'dispatcher');
+					if( !dispatcher ) {
+						dispatcher = new EventDispatcher(this);
+						data.call(this, 'dispatcher', dispatcher);
+					}
+					
 					dispatcher.on(type, fn, capture);
 				}
 			}			
@@ -1001,13 +1105,13 @@ var $ = (function() {
 					if( el.removeEventListener ) {
 						el.removeEventListener(type, fn, capture);
 
-						if( type.toLowerCase() == 'transitionend' && Device.is('webkit') )
+						if( type.toLowerCase() == 'transitionend' )
 							el.removeEventListener('webkitTransitionEnd', fn, capture);
 					} else if( el.attachEvent ) {
 						el.detachEvent('on' + type, fn);
 					}
 				} else {
-					var dispatcher = this.__alien_dispatcher__;
+					var dispatcher = data.call(this, 'dispatcher');
 					if( !dispatcher ) continue;
 					
 					dispatcher.un(type, fn, capture);
@@ -1058,8 +1162,9 @@ var $ = (function() {
 						el.fireEvent('on' + type, e );
 					}
 				} else {
-					var dispatcher = this.__alien_dispatcher__;
-					if( !dispatcher ) dispatcher = this.__alien_dispatcher__ = new EventDispatcher(this);
+					var dispatcher = data.call(this, 'dispatcher');
+					if( !dispatcher ) continue;
+					
 					e = dispatcher.fireSync(type, values);
 				}
 			}
@@ -1330,7 +1435,7 @@ var $ = (function() {
 	fn.animator = function(options, scope) {
 		return new Animator(this, options, scope || this, this);
 	};
-		
+	
 	
 	// template
 	fn.bind = function(data, functions) {

@@ -1,3 +1,12 @@
+	
+	var original = window.$;
+	window.$ = window.Alien = $;
+	
+	$.noConflict = function() {
+		window.$ = original;
+		return $;
+	};
+	
 	return $;
 })();
 

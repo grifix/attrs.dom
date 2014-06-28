@@ -8,23 +8,15 @@
 		
 		<title>DOM.Alien</title>
 
-		<!-- <script type="text/javascript" src="src/DateUtil.js"></script>
-		<script type="text/javascript" src="src/EventDispatcher.js"></script>
-		<script type="text/javascript" src="src/CSS3Calibrator.js"></script>
-		<script type="text/javascript" src="src/Animator.js"></script>
-		<script type="text/javascript" src="src/StyleSession.js"></script>
-		<script type="text/javascript" src="src/Template.js"></script>
-		<script type="text/javascript" src="src/Selector.js"></script> -->
-			
-
-		<script type="text/javascript" src="build/dom.alien.min.js"></script>
+		<script type="text/javascript" src="build/dom.alien.js"></script>
 		
 		<script type="text/javascript">
 		//<![CDATA[
 			$.ready(function(e) {
-				console.log('DOM Ready!');
-								
-				if( true ) {
+				console.log('DOM Ready!');			
+				
+				
+				if( false ) {
 					var el = $('#content');
 					console.log('el', el);
 					console.log('el instanceof $', (el instanceof $));
@@ -145,6 +137,22 @@
 					$('#gnb').all().filter(function() {
 						return true;
 					}).appendTo('#content', 0);
+					
+					// prependTo
+					$.create('div.item').html('prepend test by function').prependTo(function() {
+						return $('#content')[0];
+					});
+					$.create('div.item').html('prepend test by selector string').prependTo('#content');
+					$.create('div.item').html('prepend test by Selector').prependTo($('#content'));
+					$.create('div.item').html('prepend test by element').prependTo($('#content')[0]);
+					
+					// appendTo
+					$.create('div.item').html('append test by function').appendTo(function() {
+						return $('#content')[0];
+					});
+					$.create('div.item').html('append test by selector string').appendTo('#content');
+					$.create('div.item').html('append test by Selector').appendTo($('#content'));
+					$.create('div.item').html('append test by element').appendTo($('#content')[0]);
 				
 				
 				
@@ -297,11 +305,11 @@
 					
 					// events
 					$('.gnb > a').on('click', function(e) {
-						console.log('event fired', e.type, e);
+						console.log('click', e.type, e);
 					});
 					
 					$('.gnb > a').on('custom', function(e) {
-						console.log('event fired', e.type, e);
+						console.log('custom', e.type, e);
 					})
 					
 					$('.gnb > a').fire('custom', {added:1});
@@ -315,7 +323,29 @@
 					$('#tpl-test').bind(dataset).bind(dataset2);
 					$('#logo').create('div.item', [1,2,3,4,5]).restore();
 					$.create('div.item').html('test!').clone([1,2,3,4,5]).appendTo('#logo').html('test2').restore();
+					
+				
+					var el = $.util.create('div#test-item.a.b.c');
+					console.log('is a', $(el).is('a'));
+					console.log('is b', $(el).is('b'));
+					console.log('is c', $(el).is('c'));
+					console.log('is a b', $(el).is('a b'));
+					console.log('is a c', $(el).is('a c'));
+					console.log('is a b c', $(el).is('a b c'));
+					console.log('is d', $(el).is('d'));
+					console.log('is a b d', $(el).is('a b d'));
+				
+					console.log('div', $.util.match(el, 'div'));
+					console.log('div#test-item', $.util.match(el, 'div#test-item'));
+					console.log('div#test-item2', $.util.match(el, 'div#test-item2'));
+					console.log('#test-item', $.util.match(el, '#test-item'));
+					console.log('#test-item2', $.util.match(el, '#test-item2'));
+					console.log('.a', $.util.match(el, '.a'));
+					console.log('#test-item.a.c', $.util.match(el, '#test-item.a.c'));
+					console.log('.a.d', $.util.match(el, '.a.d'));
 				}
+				
+				
 			});
 		//]]>
 		</script>

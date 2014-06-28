@@ -56,7 +56,7 @@ var Animator = (function() {
 				session.set(key, value);
 				properties.push(key);
 			}
-		}			
+		}
 
 		session.set('transition-property', properties.join(','));		
 		session.commit();
