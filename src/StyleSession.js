@@ -68,10 +68,9 @@ var StyleSession = (function() {
 						var item = args[i];
 						if( item ) {
 							var keyvalue = item.split(':');
-							var key = keyvalue[0];
-							var value = keyvalue[1];
-							if( typeof(value) === 'string') value = value.trim();
-							o[key.trim()] = value;
+							var key = calibrator.key(keyvalue[0].trim()).original;
+							
+							o[key] = this.get(key);
 						}
 					}
 				}
@@ -81,7 +80,7 @@ var StyleSession = (function() {
 					o[key] = buffer[key];
 				}
 				
-				return o;								
+				return o;				
 			}
 			
 			if( typeof(key) !== 'string' ) console.error('[WARN] invalid key', key);

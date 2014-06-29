@@ -3,7 +3,7 @@
  * 
  * @author: joje (https://github.com/joje6)
  * @version: 0.1.0
- * @date: 2014-06-28 22:37:56
+ * @date: 2014-06-29 22:11:46
 */
 
 (function() {
@@ -1781,10 +1781,9 @@ var StyleSession = (function() {
 						var item = args[i];
 						if( item ) {
 							var keyvalue = item.split(':');
-							var key = keyvalue[0];
-							var value = keyvalue[1];
-							if( typeof(value) === 'string') value = value.trim();
-							o[key.trim()] = value;
+							var key = calibrator.key(keyvalue[0].trim()).original;
+							
+							o[key] = this.get(key);
 						}
 					}
 				}
@@ -1794,7 +1793,7 @@ var StyleSession = (function() {
 					o[key] = buffer[key];
 				}
 				
-				return o;								
+				return o;				
 			}
 			
 			if( typeof(key) !== 'string' ) console.error('[WARN] invalid key', key);
@@ -1935,7 +1934,6 @@ var $ = (function() {
 	
 	var __root__ = {};
 	function $(selector, criteria, single, context) {
-		console.log('selector', selector);
 		if( selector instanceof $ ) return selector;
 		if( selector === document || selector === window ) return $;
 		if( selector !== __root__ ) return new Selector(selector, criteria, single, context);
@@ -1997,10 +1995,10 @@ var $ = (function() {
 	function merge(o) {
 		if( !isNode(o) && typeof(o.length) === 'number' ) {
 			for(var i=0; i < o.length; i++) {
-				this.push(o[i]);
+				if( !~this.indexOf(o[i]) ) this.push(o[i]);
 			}
 		} else {
-			this.push(o);
+			if( !~this.indexOf(o) ) this.push(o);
 		}
 		return this;
 	}
@@ -2099,6 +2097,7 @@ var $ = (function() {
 	}
 	
 	function match(el, accessor) {
+		if( accessor === '*' ) return true;
 		var o = assemble(accessor);
 		var tag = o.tag;
 		var classes = o.classes;
@@ -2180,12 +2179,11 @@ var $ = (function() {
 		if( single === true ) this.single = single = true;
 		if( typeof(selector) === 'string' ) {
 			var items = [];
-			
-			//console.log('selector', selector);
-			
+					
 			if( criteria instanceof $ ) {
 				var self = this;
 				criteria.each(function() {
+					//console.log('selector', this, this.querySelectorAll(selector));	
 					if( single && self.length > 0 ) return;
 				
 					if( single ) self.push(this.querySelector(selector));
@@ -2318,7 +2316,8 @@ var $ = (function() {
 	var create = $.util.create;
 	var isElement = $.util.isElement;
 	var evalHtml = $.util.evalHtml;
-		
+	var match = $.util.match;
+	
 	function stringify(el) {
 		if( el.outerHTML ) {
 			return el.outerHTML;
@@ -2356,14 +2355,15 @@ var $ = (function() {
 		} else if( document.defaultView && document.defaultView.getComputedStyle ) {
 			cs = document.defaultView.getComputedStyle(el);
 		} else {
-			throw new Error('browser does not support computed style');
+			return console.error('not support computed style');
+			//throw new Error('browser does not support computed style');
 		}
 
 		return k ? cs[k] : cs;
 	}
 	
 	function isShowing(el) {
-		if( computed('visibillity') === 'hidden' ) return false;
+		if( computed(el, 'visibillity') === 'hidden' ) return false;
 		if( (el.scrollWidth || el.scrollHeight || el.offsetWidth || el.offsetHeight || el.clientWidth || el.clientHeight) ) return true;
 		return false;
 	}	
@@ -2462,11 +2462,31 @@ var $ = (function() {
 		return boundary;
 	}
 	
+	function camelcase(key) {
+		var position;
+		try {
+			while( ~(position = key.indexOf('-')) ) {
+				var head = key.substring(0, position);
+				var lead = key.substring(position + 1, position + 2).toUpperCase();
+				var tail = key.substring(position + 2);
+				key = head + lead + tail;
+			}
+
+			key = key.substring(0,1).toLowerCase() + key.substring(1);
+		} catch(e) {
+			console.error('WARN:style key camelcase translation error', key, e);
+		}
+
+		return key;
+	}
+	
+	
 	$.util.stringify = stringify;
 	$.util.isShowing = isShowing;
 	$.util.computed = computed;
 	$.util.type1 = type1;
 	$.util.boundary = boundary;
+	$.util.camelcase = camelcase;
 	
 	
 	// Let's define core functions
@@ -2517,30 +2537,57 @@ var $ = (function() {
 	
 	
 	// style handling
-	fn.style = fn.css = function(key, value) {
-		if( typeof(key) === 'object' ) {
-			for(var k in key) {
-				if( key.hasOwnProperty(k) ) this.style(k, key[k]);
+	fn.css = function(key, value) {
+		if( !arguments.length ) {
+			var styles = this.style();
+			
+			if( !Array.isArray(styles) ) styles = [styles];
+			var arr = [];
+			for(var i=0; i < styles.length; i++) {
+				arr.push(styles[i].get());
 			}
-			return this;
+			return array_return(arr);
 		}
 		
-		if( typeof(key) !== 'string' ) return console.error('invalid key', key);
-			
-		if( arguments.length === 1 ) {
+		return this.style.apply(this, arguments);
+	};
+	
+	fn.style = function(key, value) {		
+		if( !arguments.length ) {
 			var arr = [];
 			this.each(function() {
-				var session = new StyleSession(this[0]);
-				
-				arr.push(this.style[key]);
+				arr.push(new StyleSession(this));
 			});
 			return array_return(arr);
 		}
 		
-		var self = this;
+		if( typeof(key) === 'object' ) {
+			return this.each(function() {
+				new StyleSession(this).set(key).commit();
+			});
+		} else if( arguments.length === 1 ) {
+			if( key === false ) {
+				return this.each(function() {
+					new StyleSession(this).clear().commit();
+				});
+			} else if( typeof(key) === 'string' && ~key.indexOf(':') ) {
+				return this.each(function() {
+					new StyleSession(this).text(key).commit();
+				});
+			} else if( typeof(key) === 'string' ) {
+				var arr = [];
+				this.each(function() {
+					arr.push(new StyleSession(this).get(key));
+				});
+				return array_return(arr);
+			} else {
+				return console.error('illegal key', key);
+			}
+		}
+		
 		return this.each(function() {
 			var v = resolve.call(this, value);
-			this.style[key] = v || '';
+			new StyleSession(this).set(key, v).commit();
 		});
 	};
 	
@@ -2665,17 +2712,15 @@ var $ = (function() {
 		return this.subset(fn, false);
 	};
 	
-	fn.subset = function(fn, positive) {
+	fn.subset = function(selector, positive) {
 		var items = [];
 		
 		positive = (positive === false) ? false : true;
 		
-		if( typeof(fn) === 'string' ) {
-			var selector = ':scope > ' + fn.trim();
+		var fn = selector;
+		if( typeof(selector) === 'string' ) {
 			fn = function() {
-				var p = this.parentNode;
-				var q = p && p.querySelectorAll(selector);
-				return (Array.prototype.indexOf.call(q, this) >= 0);
+				return match(this, selector);
 			}
 		}
 		
@@ -2798,7 +2843,7 @@ var $ = (function() {
 		if( typeof(args) === 'number') args = new Array(args);
 		if( args && typeof(args.length) !== 'number' ) args = [args];
 		
-		var arr = [];		
+		var arr = [];
 		this.each(function() {
 			for(var i=0, len=args.length; i < len; i++) {
 				var el = create.call(this, accessor);
@@ -2881,9 +2926,41 @@ var $ = (function() {
 	};
 	
 	fn.before = fn.insertBefore = function(items) {
+		if( !items ) return console.error('items was null', items);
+				
+		return this.each(function() {
+			var els = resolve.call(this, items);
+			
+			if( !(els instanceof $) ) els = $(els);
+			
+			var target = this.parentNode;
+			var before = this;
+			if( target ) {
+				els.each(function() {
+					target.insertBefore(this, before);
+				});
+			}
+		});
 	};
 	
 	fn.after = fn.insertAfter = function(items) {
+		if( !items ) return console.error('items was null', items);
+				
+		return this.each(function() {
+			var els = resolve.call(this, items);
+			
+			if( !(els instanceof $) ) els = $(els);
+			
+			var target = this.parentNode;
+			console.log(target.children);
+			if( target ) {
+				var before = this.nextSibling; //;target.children[target.children.indexOf(this) + 1];
+				els.each(function() {
+					if( before ) target.insertBefore(this, before);
+					else target.appendChild(this);
+				});
+			}
+		});
 	};
 	
 	fn.appendTo = function(target) {
@@ -3215,38 +3292,6 @@ var $ = (function() {
 		return array_return(arr);
 	};
 	
-	fn.innerWidth = function() {
-		var arr = [];
-		this.each(function() {
-			var w = 0;
-			var c = this[0].children;
-			if(c) {
-				for(var i=0; i < c.length; i++) {
-					w += c[i].offsetWidth;
-				}
-			}
-
-			arr.push(w);
-		});
-		return array_return(arr);
-	};
-	
-	fn.innerHeight = function() {
-		var arr = [];
-		this.each(function() {
-			var h = 0;
-			var c = this[0].children;
-			if(c) {
-				for(var i=0; i < c.length; i++) {
-					h += c[i].offsetHeight;
-				}
-			}
-
-			arr.push(h);
-		});
-		return array_return(arr);
-	};
-	
 	
 	// misc
 	fn.bg = function(bg) {
@@ -3334,7 +3379,7 @@ var $ = (function() {
 	
 	// animation
 	fn.animate = function(options, callback) {
-		return new Animator(this, options, this, this).run(callback).exit();
+		return new Animator(this, options, this, this).run(callback).out();
 	};
 	
 	fn.animator = function(options, scope) {
@@ -3361,15 +3406,15 @@ var $ = (function() {
 			var arr = [];
 			this.each(function() {
 				var d = data;
-				if( typeof(d) === 'function' ) d = resolve.call(this, d);
+				if( typeof(d) === 'function' ) d = resolve.call(this, d);				
 				
 				if( typeof(d.length) !== 'number' ) d = [d];
 				
 				for(var i=0; i < d.length; i++) {
 					var el = $(this).clone()[0];
 					if( el.tagName.toLowerCase() === 'script' ) {
-						el = evalHtml(el.innerText)[0];
-					}
+						el = evalHtml(el.textContent || el.innerHTML || el.innerText)[0];
+					}					
 					
 					new Template(el).bind(d[i], functions);
 					arr.push(el);
@@ -3383,31 +3428,75 @@ var $ = (function() {
 	
 	
 	// for comfortable use
+	fn.innerWidth = function() {
+		var arr = [];
+		this.each(function() {
+			var w = 0;
+			var c = this[0].children;
+			if(c) {
+				for(var i=0; i < c.length; i++) {
+					w += c[i].offsetWidth;
+				}
+			}
+
+			arr.push(w);
+		});
+		return array_return(arr);
+	};
+	
+	fn.innerHeight = function() {
+		var arr = [];
+		this.each(function() {
+			var h = 0;
+			var c = this[0].children;
+			if(c) {
+				for(var i=0; i < c.length; i++) {
+					h += c[i].offsetHeight;
+				}
+			}
+
+			arr.push(h);
+		});
+		return array_return(arr);
+	};
+	
+	fn.width = function(width) {
+		if( !arguments.length ) return type1.call(this, 'offsetWidth', arguments);		
+		return this.style.call(this, 'width', width);
+	};
+	
+	fn.height = function(height) {
+		if( !arguments.length ) return type1.call(this, 'offsetHeight', arguments);		
+		return this.style.call(this, 'height', height);
+	};
+	
 	(function() {
-		// TODO : 에러남
 		var type_prop = [
 			'offsetWidth', 'offsetHeight', 'clientWidth', 'clientHeight', 'scrollWidth', 'scrollHeight'
 		];
 		
 		var type_style = [
-			'border', 'color', 'margin', 'padding', 'width', 'minWidth', 'maxWidth', 'height', 'minHeight', 'maxHeight',
-			'flex', 'float', 'opacity', 'zIndex'
+			'border', 'color', 'margin', 'padding', 'min-width', 'max-width', 'min-height', 'max-height',
+			'flex', 'float', 'opacity', 'z-index'
 		];
 		
 		type_prop.forEach(function(name) {
-			fn[name] = (function(name) {
+			fn[name] = fn[name] || (function(name) {
 				return function() {
 					return type1.call(this, name, arguments);
 				};
-			})();
+			})(name);
 		});
 		
 		type_style.forEach(function(name) {
-			fn[name] = (function(name) {
-				return function() {
-					return type2.call(this, name, arguments);
+			var cname = camelcase(name);
+			fn[cname] = fn[cname] || (function(name) {
+				return function(value) {
+					var args = [name];
+					if( arguments.length ) args.push(value);
+					return this.style.apply(this, args);
 				};
-			})();
+			})(name);
 		});
 	})();	
 })($);
@@ -3573,7 +3662,7 @@ var Animator = (function() {
 		length: function() {
 			return this._chain.length;
 		},
-		exit: function(exit) {
+		out: function(exit) {
 			if( !arguments.length ) return this._exit;
 			this._exit = exit;
 			return this;

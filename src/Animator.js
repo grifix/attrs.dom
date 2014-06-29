@@ -106,7 +106,7 @@ var Animator = (function() {
 		length: function() {
 			return this._chain.length;
 		},
-		exit: function(exit) {
+		out: function(exit) {
 			if( !arguments.length ) return this._exit;
 			this._exit = exit;
 			return this;
