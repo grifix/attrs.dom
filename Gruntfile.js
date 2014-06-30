@@ -1,12 +1,31 @@
 var files = [
+	'./build/attrs.module.js',
 	'./src/BOF.js',
 	'./src/DateUtil.js',
 	'./src/TagTranslator.js',
 	'./src/Template.js',
 	'./src/EventDispatcher.js', 
 	'./src/CSS3Calibrator.js',
+	'./src/Device.js',
 	'./src/StyleSession.js',
 	'./src/Animator.js',
+	'./src/Scroller.js',
+	'./src/Selector.js',
+	'./src/Extentions.js',
+	'./src/EOF.js'
+];
+
+var files_light = [
+	'./src/BOF.js',
+	'./src/DateUtil.js',
+	'./src/TagTranslator.js',
+	'./src/Template.js',
+	'./src/EventDispatcher.js', 
+	'./src/CSS3Calibrator.js',
+	'./src/Device.js',
+	'./src/StyleSession.js',
+	'./src/Animator.js',
+	'./src/Scroller.js',
 	'./src/Selector.js',
 	'./src/Extentions.js',
 	'./src/EOF.js'
@@ -15,6 +34,7 @@ var files = [
 var files_tiny = [
 	'./src/BOF.js',
 	'./src/CSS3Calibrator.js',
+	'./src/Device.js',
 	'./src/StyleSession.js',
 	'./src/Selector.js',
 	'./src/EOF.js'
@@ -25,6 +45,14 @@ module.exports = function(grunt) {
 	
 	grunt.initConfig({
 		pkg: pkg,
+		http: {
+			'attrs.module': {
+				options: {
+					url: 'https://raw.githubusercontent.com/attrs/attrs.module/master/build/attrs.module.js',
+				},
+				dest: './build/attrs.module.js'
+			}
+		},
 		concat: {
 			options: {
 				separator: '\n\n',
@@ -53,7 +81,12 @@ module.exports = function(grunt) {
 			basic_and_extras: {
 		      files: {
 		        'build/attrs.dom.js': files,
-				'build/attrs.dom.tiny.js': files_tiny
+		        'build/attrs.dom.light.js': files_light,
+				'build/attrs.dom.tiny.js': files_tiny,
+				
+		        'build/attrs.dom-<%= pkg.version %>.js': files,
+		        'build/attrs.dom.light-<%= pkg.version %>.js': files_light,
+				'build/attrs.dom.tiny-<%= pkg.version %>.js': files_tiny
 		      }
 		    }
 		},
@@ -64,7 +97,12 @@ module.exports = function(grunt) {
 			dist: {
 				files: {
 					'build/attrs.dom.min.js': ['build/attrs.dom.js'],
-					'build/attrs.dom.tiny.min.js': ['build/attrs.dom.tiny.js']
+					'build/attrs.dom.light.min.js': ['build/attrs.dom.light.js'],
+					'build/attrs.dom.tiny.min.js': ['build/attrs.dom.tiny.js'],
+					
+					'build/attrs.dom.min-<%= pkg.version %>.js': ['build/attrs.dom.js'],
+					'build/attrs.dom.light.min-<%= pkg.version %>.js': ['build/attrs.dom.light.js'],
+					'build/attrs.dom.tiny.min-<%= pkg.version %>.js': ['build/attrs.dom.tiny.js']
 				}
 			}
 		},
@@ -93,8 +131,9 @@ module.exports = function(grunt) {
 	grunt.loadNpmTasks('grunt-contrib-qunit');
 	grunt.loadNpmTasks('grunt-contrib-watch');
 	grunt.loadNpmTasks('grunt-contrib-concat');
+	grunt.loadNpmTasks('grunt-http');
 
-	grunt.registerTask('test', ['concat', 'uglify', 'jshint', 'qunit']);
-	grunt.registerTask('lint', ['concat', 'uglify', 'jshint']);
-	grunt.registerTask('default', ['concat', 'uglify']);
+	grunt.registerTask('default', ['http', 'concat', 'uglify']);
+	grunt.registerTask('lint', ['http', 'concat', 'uglify', 'jshint']);
+	grunt.registerTask('test', ['http', 'concat', 'uglify', 'jshint', 'qunit']);
 };

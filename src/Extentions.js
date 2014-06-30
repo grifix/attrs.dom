@@ -9,7 +9,7 @@
 	var evalHtml = $.util.evalHtml;
 	
 	// event extention		
-	if( eval('typeof(EventDispatcher)') ) {
+	if( eval('typeof(EventDispatcher) !== "undefined"') ) {
 		fn.on = function(types, fn, capture) {
 			if( typeof(types) !== 'string' ) return console.error('invalid event type', types);
 			if( typeof(fn) !== 'function' ) return console.error('invalid fn', fn);
@@ -131,7 +131,7 @@
 	}
 
 	// animation
-	if( eval('typeof(Animator)') ) {
+	if( eval('typeof(Animator) !== "undefined"') ) {
 		fn.animate = function(options, callback) {
 			return new Animator(this, options, this, this).run(callback).out();
 		};
@@ -142,7 +142,7 @@
 	}
 
 	// template
-	if( eval('typeof(Template)') ) {
+	if( eval('typeof(Template) !== "undefined"') ) {
 		fn.bind = function(data, functions) {
 			this.restore('#bind').save('#bind');
 			return this.each(function() {

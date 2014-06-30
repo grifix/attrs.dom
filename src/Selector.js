@@ -170,10 +170,15 @@ var $ = (function() {
 		return tag + id + cls;
 	}
 	
-	function assemble(accessor) {
-		if( !accessor || typeof(accessor) !== 'string' ) return console.error('invalid accessor', accessor);
+	function assemble(selector) {
+		if( !selector || typeof(selector) !== 'string' ) return console.error('invalid selector', selector);
 		
-		var arr = accessor.split('.');
+		var arr = selector.split(':');
+		
+		var accessor = arr[0];
+		var pseudo = arr[1];
+		
+		arr = accessor.split('.');
 		var tag = arr[0];
 		var id;
 		var classes = arr.splice(1).join(' ').trim();
@@ -185,10 +190,12 @@ var $ = (function() {
 		}
 		
 		return {
+			selector: selector,
 			accessor: accessor,
 			tag: tag && tag.toLowerCase() || '',
 			id: id || '',
-			classes: classes || ''
+			classes: classes || '',
+			pseudo: pseudo || ''
 		};
 	}
 	
@@ -198,12 +205,38 @@ var $ = (function() {
 		var tag = o.tag;
 		var classes = o.classes;
 		var id = o.id;
+		var pseudo = o.pseudo;
 				
 		if( !tag || el.tagName.toLowerCase() === tag ) {
 			if( !id || el.id === id ) {
-				return !classes || $(el).is(classes);
+				if( !classes || $(el).hasClass(classes) ) {
+					if( !pseudo || matchPseudo(el, pseudo) ) return true;
+				}
 			}
 		}
+		
+		return false;
+	}
+	
+	function matchPseudo(el, pseudo) {
+		if( !el || !pseudo ) return false;
+		var p = el.parentNode;
+		
+		if( pseudo === 'first' ) {
+			if( p && p.children[0] === el ) return true;
+		} else if( pseudo === 'last' ) {
+			if( p && p.children[p.children.length - 1] === el ) return true;
+		} else if( pseudo === 'checked' ) {
+			return (el.checked) ? true : false;		
+		} else if( pseudo === 'selected' ) {
+			return (el.selected) ? true : false;
+		} else if( pseudo === 'empty' ) {
+			return (!el.childNode.length) ? true : false;
+		} else if( pseudo === 'checkbox' || pseudo === 'radio' || pseudo === 'select' ) {
+			return (function(type) {
+				return (el.tagName.toLowerCase() === 'input' && (el.getAttribute('type') || '').trim().toLowerCase() === type ) ? true : false;
+			})(pseudo);
+		} 
 		
 		return false;
 	}
@@ -251,7 +284,8 @@ var $ = (function() {
 		accessor: accessor,
 		assemble: assemble,
 		array_return: array_return,
-		resolve: resolve
+		resolve: resolve,
+		matchPseudo: matchPseudo
 	};
 	
 	// define essential functions
@@ -595,6 +629,40 @@ var $ = (function() {
 		return type1.call(this, 'value', arguments);
 	};
 	
+	fn.checked = function(checked) {
+		checked = ( checked === true ) ? true : false;
+		return type1.call(this, 'checked', arguments);
+	};
+	
+	fn.check = function() {
+		return this.each(function() {
+			this.checked = true;	
+		});
+	};
+	
+	fn.uncheck = function() {
+		return this.each(function() {
+			this.checked = false;	
+		});
+	};
+	
+	fn.selected = function(selected) {
+		selected = ( selected === true ) ? true : false;
+		return type1.call(this, 'selected', arguments);
+	};
+	
+	fn.select = function() {
+		return this.each(function() {
+			this.selected = true;	
+		});
+	};
+	
+	fn.unselect = function() {
+		return this.each(function() {
+			this.selected = false;	
+		});
+	};
+	
 	fn.name = function(name) {
 		if( !arguments.length ) return this.attr('name');
 		return this.attr('name', name);
@@ -731,8 +799,8 @@ var $ = (function() {
 	fn.ac = fn.addClass = function(s) {
 		return this.classes(s, true);
 	};
-	
-	fn.is = fn.hasClass = function(s) {
+		
+	fn.hasClass = function(s) {
 		if( !s || typeof(s) !== 'string' ) return s;
 		s = s.split(' ');
 		
@@ -745,7 +813,21 @@ var $ = (function() {
 		});
 		
 		return !hasnot;
-	},
+	};
+	
+	fn.is = function(s) {
+		if( !s || typeof(s) !== 'string' ) return false;
+		var hasnot = false;
+		this.each(function() {
+			if( !match(this, s) ) hasnot = true;
+		});
+		
+		return !hasnot;
+	};
+	
+	fn.not = function(s) {
+		return !this.is(s);
+	};
 	
 	fn.rc = fn.removeClass = function(s) {
 		return this.classes(s, false);

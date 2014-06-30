@@ -1,41 +1,42 @@
 {
-	"bundleId": "attrs.dom",
-	"name": "attrs.dom",
-	"version": "0.1.0",
-	"description": "dom selector",
-	"author": {
-		"name": "joje",
-		"email": "joje.attrs@gmail.com",
-		"url": "https://github.com/joje6"
-	},
-	"repository": {
-		"type": "git",
-		"url": "git://github.com/attrs/attrs.dom.git"
-	},
-	"bugs": {
-		"url": "https://github.com/attrs/attrs.dom/issues"
-	},
-	"licenses": [
-		{
-		  "type": "MIT",
-		  "url": "http://www.opensource.org/licenses/MIT"
-		}
-	],
-	"dependencies": {
-		"async": "*"
-	},
-	"keywords": [
-		"dom",
-		"selector",
-		"ui.alien"
-	],
-	"devDependencies": {
-		"grunt": "~0.4.3",
-		"grunt-contrib-concat": "~0.3.0",
-		"grunt-contrib-uglify": "~0.4.0",
-		"grunt-contrib-watch": "~0.5.3",
-		"grunt-jsdoc": "~0.5.4",
-		"grunt-contrib-jshint": "~0.8.0",
-		"grunt-contrib-qunit": "~0.4.0"
-	}
+  "bundleId": "attrs.dom",
+  "name": "attrs.dom",
+  "version": "0.1.0",
+  "description": "dom selector",
+  "author": {
+    "name": "joje",
+    "email": "joje.attrs@gmail.com",
+    "url": "https://github.com/joje6"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/attrs/attrs.dom.git"
+  },
+  "bugs": {
+    "url": "https://github.com/attrs/attrs.dom/issues"
+  },
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "http://www.opensource.org/licenses/MIT"
+    }
+  ],
+  "dependencies": {
+    "async": "*"
+  },
+  "keywords": [
+    "dom",
+    "selector",
+    "ui.alien"
+  ],
+  "devDependencies": {
+    "grunt": "~0.4.3",
+    "grunt-contrib-concat": "~0.3.0",
+    "grunt-contrib-uglify": "~0.4.0",
+    "grunt-contrib-watch": "~0.5.3",
+    "grunt-jsdoc": "~0.5.4",
+    "grunt-contrib-jshint": "~0.8.0",
+    "grunt-contrib-qunit": "~0.4.0",
+    "grunt-http": "~1.4.0"
+  }
 }

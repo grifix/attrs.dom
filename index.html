@@ -6,17 +6,27 @@
 		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
 		<meta name="author" content="joje.attrs@gmail.com">
 		
-		<title>DOM.Alien</title>
+		<title>attrs.dom</title>
 
 		<script type="text/javascript" src="build/attrs.dom.js"></script>
 		
 		<script type="text/javascript">
 		//<![CDATA[
+			var $ = $ || require('attrs.dom');
+			
 			$.ready(function(e) {
-				console.log('DOM Ready!');			
+				console.log('DOM Ready!');
 				
 				
-				if( true ) {
+				if( false ) {
+					console.log('$.device', $.device);
+					console.log('$.Animator', $.Animator);
+					console.log('$.CSS3Calibrator', $.CSS3Calibrator);
+					console.log('$.Scroller', $.Scroller);
+					console.log('$.StyleSession', $.StyleSession);
+					console.log('$.Template', $.Template);
+					console.log('$.EventDispatcher', $.EventDispatcher);
+					
 					var el = $('#content');
 					console.log('el', el);
 					console.log('el instanceof $', (el instanceof $));
@@ -103,6 +113,15 @@
 					var els = $('div');
 					console.log('div', els);
 					console.log('clear', els.clear());
+					
+					
+
+					// check & select
+					var item = $.create('input', 3).attr('type', 'checkbox').check();
+					console.log(item, item.checked(), item.is(':checked'), item.is(':checkbox'));
+				
+					var item = $.create('input', 3).attr('type', 'radio').select();
+					console.log(item, item.selected(), item.is(':selected'), item.is(':radio'));
 				
 				
 					// global select
@@ -297,7 +316,6 @@
 					
 					
 					console.log($('#tpl-test').bind(dataset));
-					
 					
 					
 					console.log($('#tpl').tpl(dataset.rows).appendTo('#content'));
