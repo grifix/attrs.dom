@@ -3,7 +3,7 @@
  * 
  * @author: joje (https://github.com/joje6)
  * @version: 0.1.0
- * @date: 2014-06-30 16:36:10
+ * @date: 2014-06-30 16:49:21
 */
 
 (function() {
@@ -1879,12 +1879,7 @@ var Device = (function() {
 var StyleSession = (function() {
 	"use strict"
 	
-	var calibrator = new CSS3Calibrator({
-		prefix: '-webkit-',
-		is: function(qry) {
-			return true
-		}
-	});
+	var calibrator = Device.calibrator;
 
 	// class Template
 	function StyleSession(el) {

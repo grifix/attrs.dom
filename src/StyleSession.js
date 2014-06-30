@@ -1,12 +1,7 @@
 var StyleSession = (function() {
 	"use strict"
 	
-	var calibrator = new CSS3Calibrator({
-		prefix: '-webkit-',
-		is: function(qry) {
-			return true
-		}
-	});
+	var calibrator = Device.calibrator;
 
 	// class Template
 	function StyleSession(el) {
