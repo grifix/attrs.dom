@@ -19,6 +19,26 @@ if( !String.prototype.endsWith ) {
 	};
 }
 
+if ( !Array.prototype.every ) {
+	Array.prototype.every = function(fun /*, thisArg */) {
+		'use strict';
+
+		if (this === void 0 || this === null) throw new TypeError();
+
+		var t = Object(this);
+		var len = t.length >>> 0;
+		if (typeof fun !== 'function') throw new TypeError();
+
+		var thisArg = arguments.length >= 2 ? arguments[1] : void 0;
+		for (var i = 0; i < len; i++) {
+			if (i in t && !fun.call(thisArg, t[i], i, t))
+				return false;
+		}
+
+		return true;
+	};
+}
+
 var $ = (function() {
 	"use strict";
 	
@@ -330,8 +350,8 @@ var $ = (function() {
 	};
 	
 	prototype.each = function(fn) {
-		this.forEach(function(el) {
-			fn.call(el);
+		this.every(function(el) {
+			return ( fn.call(el) === false ) ? false : true;
 		});
 		return this;
 	};
@@ -602,6 +622,28 @@ var $ = (function() {
 		return key;
 	}
 	
+	function findChild(method, selector, arr) {
+		if( typeof(selector) === 'number' ) {
+			var c = this[method][selector - 1];
+			if( c ) arr.push(c);
+		} else if( typeof(selector) === 'string' && !selector.startsWith('arg:') ) {	// find by selector
+			var children = this[method];
+			for(var i=0; i < children.length; i++) {
+				var el = children[i];
+				if( match(el, selector) ) arr.push(el);
+			}
+		} else if( selector ) {	// find by element's arg data
+			if( selector.startsWith('arg:') ) selector = selector.substring(4);
+			var children = this[method];
+			for(var i=0; i < children.length; i++) {
+				var el = children[i];
+				if( data.call(el, 'arg') === selector ) arr.push(el);
+			}
+		} else {	// all children
+			merge.call(arr, this[method]);	
+		}
+	}
+	
 	
 	$.util.stringify = stringify;
 	$.util.isShowing = isShowing;
@@ -609,6 +651,7 @@ var $ = (function() {
 	$.util.type1 = type1;
 	$.util.boundary = boundary;
 	$.util.camelcase = camelcase;
+	$.util.findChild = findChild;
 	
 	
 	// Let's define core functions
@@ -862,18 +905,18 @@ var $ = (function() {
 		return $(selector, this, true).context(this);
 	};
 	
-	fn.children = function() {
+	fn.children = function(selector) {
 		var arr = [];
 		this.each(function() {
-			merge.call(arr, this.children);	
+			findChild.call(this, 'children', selector, arr);
 		});
 		return $(arr).context(this);
 	};
 	
-	fn.contents = function() {
+	fn.contents = function(selector) {
 		var arr = [];
 		this.each(function() {
-			merge.call(arr, this.childNodes);	
+			findChild.call(this, 'childNodes', selector, arr);
 		});
 		return $(arr).context(this);	
 	};
@@ -900,8 +943,7 @@ var $ = (function() {
 				if( result === true ) items.push(this);
 			} else {
 				if( result !== true ) items.push(this);
-			}
-			
+			}			
 		});
 		return $(items).context(this);
 	};
@@ -1009,7 +1051,15 @@ var $ = (function() {
 	fn.create = function(accessor, args, fn) {
 		if( typeof(accessor) !== 'string' ) return console.error('invalid accessor', accessor);
 		
-		if( !args ) args = [null];
+		if( arguments.length === 2 && typeof(args) === 'function' ) {
+			fn = args;
+			args = [null];
+		} else if( arguments.length === 1 ) {
+			args = [null];
+		} else if( !args ) {
+			args = [];
+		}
+		
 		if( typeof(args) === 'number') args = new Array(args);
 		if( args && typeof(args.length) !== 'number' ) args = [args];
 		
@@ -1596,56 +1646,3 @@ var $ = (function() {
 		});
 	})();	
 })($);
-
-
-// MutationObserver setup for detect DOM node changes.
-// if browser doesn't support DOM3 MutationObeserver, use MutationObeserver shim (https://github.com/megawac/MutationObserver.js)
-$.ready(function() {
-	var observer = new MutationObserver(function(mutations){
-		mutations.forEach(function(mutation) {
-			//if( debug('mutation') ) console.error(mutation.target, mutation.type, mutation);
-			
-			if( mutation.type === 'childList' ) {
-				var target = mutation.target;
-				var tel = $(target);
-				var added = mutation.addedNodes;
-				var removed = mutation.removedNodes;				
-								
-				if( removed ) {
-					for(var i=0; i < removed.length; i++) {
-						var source = $(removed[i]);
-						
-						tel.fire('removed', {
-							removed: removed[i]
-						});
-						
-						source.fire('detached', {
-							from: target
-						});
-					}
-				}
-				
-				if( added ) {
-					for(var i=0; i < added.length; i++) {
-						var source = $(added[i]);
-							
-						tel.fire('added', {
-							added: added[i]
-						});
-						
-						source.fire('attached', {
-							to: target
-						});
-					}
-				}
-			}
-		}); 
-    });
-
-	observer.observe(document.body, {
-		subtree: true,
-	    childList: true,
-	    attributes: true,
-	    characterData: true
-	});
-});

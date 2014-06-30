@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+		<meta name="author" content="joje.attrs@gmail.com">
+		
+		<title>Timetable Example</title>
+
+		<script type="text/javascript" src="../../build/attrs.dom.js"></script>
+		
+		<script type="text/javascript">
+		//<![CDATA[
+			var $ = require('attrs.dom');
+			
+			$.ready(function(e) {
+				console.log('DOM Ready!');
+				
+				var timetable = new Timetable({
+					slots: ['room1', 'room2', 'room3'],
+					rowType: 'day'
+				});
+				
+				timetable.slots(null);
+				timetable.attachTo('#content');
+			});
+			
+			// class Timetable
+			function Timetable(options) {
+				this.options = options;
+				this.el = $.create('div.timetable');
+				this.build();
+			}
+			
+			Timetable.prototype = {
+				build: function() {
+					var o = this.options;
+					this.rowType(o.rowType || 'day');
+					if( o.slots ) this.slots(o.slots);		
+				},
+				attachTo: function(target) {
+					this.el.appendTo(target);
+					return this;
+				},
+				rowType: function(type) {
+					
+					return this;
+				},
+				slots: function(slots, flag) {
+					if( !arguments.length ) {
+						return this._slots;
+					} else if( arguments.length === 1 ) {
+						// claer all slots
+					} else if( flag === false ) {
+						// remove target slot
+					} else {
+						
+					}
+					
+					this.el.create('div.slot', slots).call(function(slot) {
+						console.log('added', slot);
+					});
+					
+					return this;
+				},
+				addBlock: function(slot, data) {
+					
+				}
+			};
+			
+			/*$.ready(function() {				
+				var c = $.create('div.item', ['a', 'b', 'c']).call(function(d) {
+					$(this).ac(d);
+				}).parent().children('.item.b');
+				console.log(c);
+			});*/
+		//]]>
+		</script>
+	</head>
+	<body>
+		<script id="tpl-block" type="text/html">
+			<div id="block-{id}" class="block" title="{title}">
+				<em>{date:date}</em>
+				<h1>{title}</h1>
+				<p>{description}</p>
+			</div>
+		</script>
+		
+		<div id="content">
+			<style>
+				* {
+					box-sizing: border-box;
+					padding: 0;
+					margin: 0;
+				}
+				
+				body {
+					font: 13px Helvetica, arial, freesans, clean, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol";
+					padding: 10px;
+				}
+				
+				input:focus {
+					outline: -webkit-focus-ring-color auto 5px;
+				}
+				
+				input[type="text"], #adv_code_search .search-page-label, input[type="password"], input[type="email"], input[type="number"], input[type="tel"], input[type="url"], textarea {
+					font: 13px Helvetica, arial, freesans, clean, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol";
+					
+					min-height: 34px;
+					padding: 7px 8px;
+					outline: none;
+					color: #333;
+					background-color: #fff;
+					background-repeat: no-repeat;
+					background-position: right center;
+					border: 1px solid #ccc;
+					border-radius: 3px;
+					box-shadow: inset 0 1px 2px rgba(0,0,0,0.075);
+					vertical-align: middle;
+				}
+			
+				.alien.timetable {
+					line-height: 20px;
+				}
+				
+				.alien.timetable .filter input[type=text] {
+					padding: 4px 8px 5px 8px;
+					width: 100%;
+					font-size: 12px;
+					border: 0;
+					border-radius: 0;
+					outline: none;
+				}
+				
+				.alien.timetable table.main-table {
+					width: 100%;
+					margin-bottom: 0;
+					margin-top: 0;
+					border-collapse: collapse;
+					border-spacing: 0;
+					border-spacing: 2px;
+					border-color: gray;
+					table-layout: fixed;
+				}
+				
+				.alien.timetable table.main-table thead {
+					vertical-align: middle;
+					border-color: inherit;
+				}
+				
+				.alien.timetable table.main-table tr {
+					background-color: #fff;
+				}
+				
+				.alien.timetable table.main-table thead th {
+					padding: 5px;
+					text-align: center;
+					line-height: 1.7;
+					border: 1px solid #ddd;
+					
+					font-weight: bold;
+					background: #f8f8f8;
+				}
+				
+				.alien.timetable table.main-table tbody td {
+					padding: 5px;
+					text-align: center;
+					border-right: 1px solid #ddd;
+					line-height: 1.7;
+				}
+				
+				.alien.timetable table.main-table tbody td.unit {
+					border: 1px solid #ddd;
+				}
+				
+				.alien.timetable table.main-table tbody tr:last-child td {
+					border-bottom: 1px solid #ddd;
+				}
+				
+				.alien.timetable table.main-table tbody tr:nth-child(2n) {
+					background-color: #f8f8f8;
+				}
+			</style>
+			<div class="alien timetable">
+				<div class="filter">
+					<input type="text" name="filter" placeholder="검색어를 입력하세요. (이름, 연락처, 메모 등)" autocapitalize="off">
+				</div>
+				<table class="main-table">
+					<thead>
+						<tr>
+							<th></th>
+							<th>객실A</th>
+							<th>객실B</th>
+							<th>객실C</th>
+							<th>객실D</th>
+							<th>객실E</th>
+							<th>객실F</th>
+							<th>객실G</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td class="unit">2013.06.01</td>
+							<td></td>
+							<td></td>
+							<td></td>
+							<td></td>
+							<td></td>
+							<td></td>
+							<td></td>
+						</tr>
+						<tr>
+							<td class="unit">2013.06.02</td>
+							<td></td>
+							<td></td>
+							<td></td>
+							<td></td>
+							<td></td>
+							<td></td>
+							<td></td>
+						</tr>
+						<tr>
+							<td class="unit">2013.06.03</td>
+							<td></td>
+							<td></td>
+							<td></td>
+							<td></td>
+							<td></td>
+							<td></td>
+							<td></td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+		</div>
+	</body>
+</html>
+

@@ -42,7 +42,7 @@
 				
 						dispatcher.on(type, fn, capture);
 					}
-				}			
+				}
 			});
 		};
 
@@ -128,6 +128,58 @@
 				}
 			});
 		};
+		
+		// MutationObserver setup for detect DOM node changes.
+		// if browser doesn't support DOM3 MutationObeserver, use MutationObeserver shim (https://github.com/megawac/MutationObserver.js)
+		$.ready(function() {
+			var observer = new MutationObserver(function(mutations){
+				mutations.forEach(function(mutation) {
+					//if( debug('mutation') ) console.error(mutation.target, mutation.type, mutation);
+			
+					if( mutation.type === 'childList' ) {
+						var target = mutation.target;
+						var tel = $(target);
+						var added = mutation.addedNodes;
+						var removed = mutation.removedNodes;				
+								
+						if( removed ) {
+							for(var i=0; i < removed.length; i++) {
+								var source = $(removed[i]);
+						
+								tel.fire('removed', {
+									removed: removed[i]
+								});
+						
+								source.fire('detached', {
+									from: target
+								});
+							}
+						}
+				
+						if( added ) {
+							for(var i=0; i < added.length; i++) {
+								var source = $(added[i]);
+							
+								tel.fire('added', {
+									added: added[i]
+								});
+						
+								source.fire('attached', {
+									to: target
+								});
+							}
+						}
+					}
+				}); 
+		    });
+
+			observer.observe(document.body, {
+				subtree: true,
+			    childList: true,
+			    attributes: true,
+			    characterData: true
+			});
+		});
 	}
 
 	// animation
