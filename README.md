@@ -1,4 +1,4 @@
-dom.alien
+attrs dom
 =========
 
-dom selector package for ui.alien
+dom selector

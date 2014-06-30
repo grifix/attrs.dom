@@ -1,9 +1,9 @@
 /*!
- * dom.alien - dom selector (MIT License)
+ * attrs.dom - dom selector (MIT License)
  * 
  * @author: joje (https://github.com/joje6)
  * @version: 0.1.0
- * @date: 2014-06-29 22:11:46
+ * @date: 2014-06-30 10:9:41
 */
 
 (function() {
@@ -1902,6 +1902,235 @@ if( false ) {
 }
 
 
+var Animator = (function() {
+	"use strict"
+
+	// privates
+	function pixel(el, key, value) {
+	}
+	
+	function toString(value, unit) {
+		if( typeof(value) !== 'number' ) return value;
+		return value + (unit || '');
+	}
+
+	var reserved = ['delay', 'use3d', 'backface', 'origin', 'perspective', 'easing', 'duration', 'perspective'];
+	function transition(el, o) {
+		var parent = el.parent();
+
+		var session = el.style();
+		if( o.use3d !== false ) session.set('transform-style', 'preserve-3d');
+		if( o.backface === 'hidden' ) session.set('backface-visibility', 'hidden');
+		if( o.origin ) session.set('transform-origin', o.origin);
+		if( typeof(o.perspective) === 'number' ) parent.style('perspective', o.perspective);
+		session.set('transition-timing-function', o.easing || Animator.DEFAULT_EASING || 'ease-in-out');		
+		session.set('transition-duration', (o.duration || Animator.DEFAULT_DURATION) + 'ms');
+		
+		var properties = [];
+		for(var key in o) {
+			if( !key || !o.hasOwnProperty(key) || ~reserved.indexOf(key)) continue;
+
+			var value = o[key];
+			if( key === 'transform' && typeof(value) === 'object' ) {			
+				var transform = o['transform'];
+				
+				var text = '';
+				for(var key in transform) {
+					if( !transform.hasOwnProperty(key) ) continue;
+					
+					var value = transform[key];
+					
+					if( key === 'x' ) text += 'translateX(' + toString(value, 'px') + ') ';
+					else if( key === 'y' ) text += 'translateY(' + toString(value, 'px') + ') ';
+					else if( key === 'z' ) text += 'translateZ(' + toString(value, 'px') + ') ';
+					else if( key === 'rx' ) text += 'rotateX(' + toString(value, 'deg') + ') ';
+					else if( key === 'ry' ) text += 'rotateY(' + toString(value, 'deg') + ') ';
+					else if( key === 'rz' ) text += 'rotateZ(' + toString(value, 'deg') + ') ';
+					else if( key === 'sx' ) text += 'scaleX(' + toString(value) + ') ';
+					else if( key === 'sy' ) text += 'scaleY(' + toString(value) + ') ';
+					else if( key === 'sz' ) text += 'scaleZ(' + toString(value) + ') ';
+					else text += (key + '(' + value + ')');
+				}
+				
+				//console.log('transform', text);
+				
+				session.set('transform', text);
+				properties.push('transform');
+			} else if( key ) {
+				session.set(key, value);
+				properties.push(key);
+			}
+		}
+
+		session.set('transition-property', properties.join(','));		
+		session.commit();
+		//console.log('transition:', session.raw());
+	}
+	
+	// class Animator
+	function Animator(el, options, scope, exit) {
+		if( !(el instanceof $) ) el = $(el);
+		this.el = el;
+		if( scope ) this.scope(scope);
+		this._chain = [];
+		this.index = -1;
+		if( options ) this.chain(options);
+		this._exit = exit || this.scope();
+	}
+
+	Animator.DEFAULT_DURATION = 250;
+	Animator.DEFAULT_EASING = 'ease-in-out';
+	Animator.FAULT_WAITING = 100;
+
+	Animator.prototype = {
+		chain: function(options) {
+			if( !arguments.length ) return this._chain;
+			if( typeof(options) === 'number' ) return this._chain[options];
+			
+			if( options === false ) {
+				this._chain = [];
+				return this;
+			}
+
+			var args = options;
+			if( !Array.isArray(args) ) args = [args];
+			for(var i=0; i < args.length; i++) {
+				var o = args[i];
+				if( typeof(o) !== 'object' ) console.error('[WARN] illegal animation options', o);
+				this._chain.push(o);
+			}
+			
+			return this;
+		},
+		scope: function(scope) {
+			if( !arguments.length ) return this._scope || this.el;
+			if( scope ) this._scope = scope;
+			return this;
+		},
+		length: function() {
+			return this._chain.length;
+		},
+		out: function(exit) {
+			if( !arguments.length ) return this._exit;
+			this._exit = exit;
+			return this;
+		},
+		reset: function(options) {
+			this.stop();
+			this.first();
+			this.chain(options);
+		},
+		before: function(before) {
+			if( !arguments.length ) return this._before;
+			if( before === false ) {
+				this._before = null;
+				return this;
+			}
+
+			if( typeof(before) !== 'function' ) return console.error('Animator:before function must be a function', before);
+			this._before = before;
+			return this;
+		},
+		run: function(callback) {
+			this.first();
+
+			var before = this.before();
+			if( before ) before.call(this.scope(), this);
+
+			var fn = function() {
+				if( !this.next(fn) && callback ) callback.call(this.scope(), this);
+			};
+
+			fn.call(this);
+
+			return this;
+		},
+		reverse: function(callback) {
+			this.last();
+
+			var before = this.before();
+			if( before ) before.call(this.scope(), this);
+
+			var fn = function() {
+				if( !this.prev(fn) && callback ) callback.call(this.scope(), this);
+			};
+
+			fn.call(this);
+
+			return this;
+		},
+		executeCurrent: function(callback) {
+			var self = this;
+			var finished = false;
+			var fn = function(e) {
+				if( !finished ) {
+					finished = true;
+					self.el.un('transitionend', fn);
+					if( callback ) callback.call(self.scope(), self);
+				}
+			};
+			var options = this.chain(this.index);
+			if( !options ) return false;
+			this.el.on('transitionend', fn);
+			
+			if( typeof(options.delay) === 'number' ) {
+				setTimeout(function() {
+					transition(self.el, options);
+				}, options.delay);
+			} else {
+				transition(this.el, options);
+			}
+			
+			var wait = Animator.FAULT_WAITING;
+			if( typeof(wait) !== 'number' || isNaN(options.delay) ) wait = 100;
+			if( typeof(options.delay) === 'number' && !isNaN(options.delay) ) wait = wait + options.delay;
+			if( typeof(options.duration) === 'number' && !isNaN(options.duration) ) wait = wait + options.duration;
+			else wait += Animator.DEFAULT_DURATION;
+			setTimeout(function() {
+				if( !finished ) {
+					finished = true;
+					console.log('animation no affects', options);
+					self.el.un('transitionend', fn);
+					if( callback ) callback.call(self.scope(), self);
+				}
+			}, wait);
+
+			return this;
+		},
+		first: function() {
+			this.index = -1;
+			return this;
+		},
+		last: function() {
+			this.index = -1;
+			return this;
+		},
+		next: function(callback) {
+			var o = this.chain(++this.index);
+			if( !o ) return false;
+			var self = this;
+			var b = this.executeCurrent(function(anim) {
+				if( callback ) callback.call(self, anim);
+			});
+			if( !b ) return false;
+			return this;
+		},
+		prev: function(callback) {
+			var o = this.chain(--this.index);
+			if( !o ) return false;
+			var self = this;
+			var b = this.executeCurrent(function(anim) {
+				if( callback ) callback.call(self, anim);
+			});
+			if( !b ) return false;
+			return this;
+		}
+	};
+
+	return Animator;
+})();
+
+
 /*!
  * jojequery (MIT License)
  *
@@ -2289,14 +2518,6 @@ var $ = (function() {
 		
 		return last;
 	};
-	
-	
-	// regist module system
-	if( window.define ) {
-		define('dom', function(module) {
-			module.exports = $;
-		});
-	}
 	
 	return $;
 })();
@@ -3037,117 +3258,94 @@ var $ = (function() {
 	fn.on = function(types, fn, capture) {
 		if( typeof(types) !== 'string' ) return console.error('invalid event type', types);
 		if( typeof(fn) !== 'function' ) return console.error('invalid fn', fn);
-		
+	
 		capture = (capture===true) ? true : false;
 		types = types.split(' ');
-		
+	
 		return this.each(function() {
 			var el = this;
-			
+		
 			for(var i=0; i < types.length; i++) {
 				var type = types[i];
-				
-				if(('on' + type) in el || type.toLowerCase() == 'transitionend') {	// if dom events			
-					if( el.addEventListener ) {
-						el.addEventListener(type, fn, capture);
+			
+				if( el.addEventListener ) {
+					el.addEventListener(type, fn, capture);
 
-						if( type.toLowerCase() == 'transitionend' ) {
-							el.addEventListener('webkitTransitionEnd', fn, capture);
-						}
-					} else if( el.attachEvent ) {
-						el.attachEvent('on' + type, fn);
+					if( type.toLowerCase() == 'transitionend' ) {
+						el.addEventListener('webkitTransitionEnd', fn, capture);
 					}
-				} else {
-					var dispatcher = data.call(this, 'dispatcher');
-					if( !dispatcher ) {
-						dispatcher = new EventDispatcher(this);
-						data.call(this, 'dispatcher', dispatcher);
-					}
-					
-					dispatcher.on(type, fn, capture);
+				} else if( el.attachEvent ) {
+					el.attachEvent('on' + type, fn);
 				}
 			}			
 		});
 	};
 	
+
 	fn.off = function(types, fn, capture) {
 		if( typeof(types) !== 'string' ) return console.error('invalid event type', types);
 		if( typeof(fn) !== 'function' ) return console.error('invalid fn', fn);
-		
+	
 		capture = (capture===true) ? true : false;
 		types = types.split(' ');
-		
+	
 		return this.each(function() {			
 			var el = this;
-			
+		
 			for(var i=0; i < types.length; i++) {
 				var type = types[i];
-				
-				if(('on' + type) in el || type.toLowerCase() == 'transitionend') {	// if dom events
-					if( el.removeEventListener ) {
-						el.removeEventListener(type, fn, capture);
+			
+				if( el.removeEventListener ) {
+					el.removeEventListener(type, fn, capture);
 
-						if( type.toLowerCase() == 'transitionend' )
-							el.removeEventListener('webkitTransitionEnd', fn, capture);
-					} else if( el.attachEvent ) {
-						el.detachEvent('on' + type, fn);
-					}
-				} else {
-					var dispatcher = data.call(this, 'dispatcher');
-					if( !dispatcher ) continue;
-					
-					dispatcher.un(type, fn, capture);
+					if( type.toLowerCase() == 'transitionend' )
+						el.removeEventListener('webkitTransitionEnd', fn, capture);
+				} else if( el.attachEvent ) {
+					el.detachEvent('on' + type, fn);
 				}
 			}
 		});
 	};
-	
+
 	fn.fire = function(types, values) {
 		if( !types ) return console.error('invalid event type:', types);
-		
+	
 		values = values || {};
 		types = types.split(' ');
-		
+	
 		return this.each(function() {
 			var e, el = this;
-			
+		
 			for(var i=0; i < types.length; i++) {
 				var type = types[i];
-				
-				if(('on' + type) in el) {	// if dom events
-					// eventName, bubbles, cancelable
-					if( document.createEvent ) {
-						e = document.createEvent('Event');
-						e.initEvent(type, ((values.bubbles===true) ? true : false), ((values.cancelable===true) ? true : false));
-					} else if( document.createEventObject ) {
-						e = document.createEventObject();
-					} else {
-						return console.error('this browser does not supports manual dom event fires');
-					}
 			
-					for(var k in values) {
-						if( !values.hasOwnProperty(k) ) continue;
-						var v = values[k];
-						try {
-							e[k] = v;
-						} catch(err) {
-							console.error('[WARN] illegal event value', e, k);
-						}
-					}
-					e.values = values;
-					e.src = this;
-
-					if( el.dispatchEvent ) {
-						el.dispatchEvent(e);
-					} else {
-						e.cancelBubble = ((values.bubbles===true) ? true : false);
-						el.fireEvent('on' + type, e );
-					}
+				// eventName, bubbles, cancelable
+				if( document.createEvent ) {
+					e = document.createEvent('Event');
+					e.initEvent(type, ((values.bubbles===true) ? true : false), ((values.cancelable===true) ? true : false));
+				} else if( document.createEventObject ) {
+					e = document.createEventObject();
 				} else {
-					var dispatcher = data.call(this, 'dispatcher');
-					if( !dispatcher ) continue;
-					
-					e = dispatcher.fireSync(type, values);
+					return console.error('this browser does not supports manual dom event fires');
+				}
+	
+				for(var k in values) {
+					if( !values.hasOwnProperty(k) ) continue;
+					var v = values[k];
+					try {
+						e[k] = v;
+					} catch(err) {
+						console.error('[WARN] illegal event value', e, k);
+					}
+				}
+				e.values = values;
+				e.src = this;
+
+				if( el.dispatchEvent ) {
+					el.dispatchEvent(e);
+				} else {
+					e.cancelBubble = ((values.bubbles===true) ? true : false);
+					el.fireEvent('on' + type, e );
 				}
 			}
 		});
@@ -3376,57 +3574,6 @@ var $ = (function() {
 		});
 	};
 	
-	
-	// animation
-	fn.animate = function(options, callback) {
-		return new Animator(this, options, this, this).run(callback).out();
-	};
-	
-	fn.animator = function(options, scope) {
-		return new Animator(this, options, scope || this, this);
-	};
-	
-	
-	// template
-	fn.bind = function(data, functions) {
-		this.restore('#bind').save('#bind');
-		return this.each(function() {
-			new Template(this).bind(data, functions);
-		});
-	};
-	
-	fn.tpl = function(data, functions) {
-		if( !arguments.length ) {
-			var arr = [];
-			this.each(function() {
-				arr.push(new Template($(this).clone()[0]));
-			});
-			return array_return(arr);
-		} else if( data ) {
-			var arr = [];
-			this.each(function() {
-				var d = data;
-				if( typeof(d) === 'function' ) d = resolve.call(this, d);				
-				
-				if( typeof(d.length) !== 'number' ) d = [d];
-				
-				for(var i=0; i < d.length; i++) {
-					var el = $(this).clone()[0];
-					if( el.tagName.toLowerCase() === 'script' ) {
-						el = evalHtml(el.textContent || el.innerHTML || el.innerText)[0];
-					}					
-					
-					new Template(el).bind(d[i], functions);
-					arr.push(el);
-				}
-			});
-			return $(arr).context(this);
-		} else {
-			return console.error('illegal data', data);
-		}
-	};
-	
-	
 	// for comfortable use
 	fn.innerWidth = function() {
 		var arr = [];
@@ -3554,245 +3701,221 @@ $.ready(function() {
 	});
 });
 
-var Animator = (function() {
-	"use strict"
-
-	// privates
-	function pixel(el, key, value) {
-	}
+(function($) {
+	"use strict";
 	
-	function toString(value, unit) {
-		if( typeof(value) !== 'number' ) return value;
-		return value + (unit || '');
-	}
-
-	var reserved = ['delay', 'use3d', 'backface', 'origin', 'perspective', 'easing', 'duration', 'perspective'];
-	function transition(el, o) {
-		var parent = el.parent();
-
-		var session = el.style();
-		if( o.use3d !== false ) session.set('transform-style', 'preserve-3d');
-		if( o.backface === 'hidden' ) session.set('backface-visibility', 'hidden');
-		if( o.origin ) session.set('transform-origin', o.origin);
-		if( typeof(o.perspective) === 'number' ) parent.style('perspective', o.perspective);
-		session.set('transition-timing-function', o.easing || Animator.DEFAULT_EASING || 'ease-in-out');		
-		session.set('transition-duration', (o.duration || Animator.DEFAULT_DURATION) + 'ms');
+	var fn = $.fn;
+	
+	var array_return = $.util.array_return;
+	var resolve = $.util.resolve;
+	var data = $.util.data;
+	var evalHtml = $.util.evalHtml;
+	
+	// event extention		
+	if( eval('typeof(EventDispatcher)') ) {
+		fn.on = function(types, fn, capture) {
+			if( typeof(types) !== 'string' ) return console.error('invalid event type', types);
+			if( typeof(fn) !== 'function' ) return console.error('invalid fn', fn);
+	
+			capture = (capture===true) ? true : false;
+			types = types.split(' ');
+	
+			return this.each(function() {
+				var el = this;
 		
-		var properties = [];
-		for(var key in o) {
-			if( !key || !o.hasOwnProperty(key) || ~reserved.indexOf(key)) continue;
+				for(var i=0; i < types.length; i++) {
+					var type = types[i];
+			
+					if(('on' + type) in el || type.toLowerCase() == 'transitionend') {	// if dom events			
+						if( el.addEventListener ) {
+							el.addEventListener(type, fn, capture);
 
-			var value = o[key];
-			if( key === 'transform' && typeof(value) === 'object' ) {			
-				var transform = o['transform'];
+							if( type.toLowerCase() == 'transitionend' ) {
+								el.addEventListener('webkitTransitionEnd', fn, capture);
+							}
+						} else if( el.attachEvent ) {
+							el.attachEvent('on' + type, fn);
+						}
+					} else {
+						var dispatcher = data.call(this, 'dispatcher');
+						if( !dispatcher ) {
+							dispatcher = new EventDispatcher(this);
+							data.call(this, 'dispatcher', dispatcher);
+						}
 				
-				var text = '';
-				for(var key in transform) {
-					if( !transform.hasOwnProperty(key) ) continue;
-					
-					var value = transform[key];
-					
-					if( key === 'x' ) text += 'translateX(' + toString(value, 'px') + ') ';
-					else if( key === 'y' ) text += 'translateY(' + toString(value, 'px') + ') ';
-					else if( key === 'z' ) text += 'translateZ(' + toString(value, 'px') + ') ';
-					else if( key === 'rx' ) text += 'rotateX(' + toString(value, 'deg') + ') ';
-					else if( key === 'ry' ) text += 'rotateY(' + toString(value, 'deg') + ') ';
-					else if( key === 'rz' ) text += 'rotateZ(' + toString(value, 'deg') + ') ';
-					else if( key === 'sx' ) text += 'scaleX(' + toString(value) + ') ';
-					else if( key === 'sy' ) text += 'scaleY(' + toString(value) + ') ';
-					else if( key === 'sz' ) text += 'scaleZ(' + toString(value) + ') ';
-					else text += (key + '(' + value + ')');
-				}
-				
-				//console.log('transform', text);
-				
-				session.set('transform', text);
-				properties.push('transform');
-			} else if( key ) {
-				session.set(key, value);
-				properties.push(key);
-			}
-		}
+						dispatcher.on(type, fn, capture);
+					}
+				}			
+			});
+		};
 
-		session.set('transition-property', properties.join(','));		
-		session.commit();
-		//console.log('transition:', session.raw());
-	}
+		fn.off = function(types, fn, capture) {
+			if( typeof(types) !== 'string' ) return console.error('invalid event type', types);
+			if( typeof(fn) !== 'function' ) return console.error('invalid fn', fn);
 	
-	// class Animator
-	function Animator(el, options, scope, exit) {
-		if( !(el instanceof $) ) el = $(el);
-		this.el = el;
-		if( scope ) this.scope(scope);
-		this._chain = [];
-		this.index = -1;
-		if( options ) this.chain(options);
-		this._exit = exit || this.scope();
+			capture = (capture===true) ? true : false;
+			types = types.split(' ');
+	
+			return this.each(function() {			
+				var el = this;
+		
+				for(var i=0; i < types.length; i++) {
+					var type = types[i];
+			
+					if(('on' + type) in el || type.toLowerCase() == 'transitionend') {	// if dom events
+						if( el.removeEventListener ) {
+							el.removeEventListener(type, fn, capture);
+
+							if( type.toLowerCase() == 'transitionend' )
+								el.removeEventListener('webkitTransitionEnd', fn, capture);
+						} else if( el.attachEvent ) {
+							el.detachEvent('on' + type, fn);
+						}
+					} else {
+						var dispatcher = data.call(this, 'dispatcher');
+						if( !dispatcher ) continue;
+				
+						dispatcher.un(type, fn, capture);
+					}
+				}
+			});
+		};
+
+		fn.fire = function(types, values) {
+			if( !types ) return console.error('invalid event type:', types);
+	
+			values = values || {};
+			types = types.split(' ');
+	
+			return this.each(function() {
+				var e, el = this;
+		
+				for(var i=0; i < types.length; i++) {
+					var type = types[i];
+			
+					if(('on' + type) in el) {	// if dom events
+						// eventName, bubbles, cancelable
+						if( document.createEvent ) {
+							e = document.createEvent('Event');
+							e.initEvent(type, ((values.bubbles===true) ? true : false), ((values.cancelable===true) ? true : false));
+						} else if( document.createEventObject ) {
+							e = document.createEventObject();
+						} else {
+							return console.error('this browser does not supports manual dom event fires');
+						}
+		
+						for(var k in values) {
+							if( !values.hasOwnProperty(k) ) continue;
+							var v = values[k];
+							try {
+								e[k] = v;
+							} catch(err) {
+								console.error('[WARN] illegal event value', e, k);
+							}
+						}
+						e.values = values;
+						e.src = this;
+
+						if( el.dispatchEvent ) {
+							el.dispatchEvent(e);
+						} else {
+							e.cancelBubble = ((values.bubbles===true) ? true : false);
+							el.fireEvent('on' + type, e );
+						}
+					} else {
+						var dispatcher = data.call(this, 'dispatcher');
+						if( !dispatcher ) continue;
+				
+						e = dispatcher.fireSync(type, values);
+					}
+				}
+			});
+		};
 	}
 
-	Animator.DEFAULT_DURATION = 250;
-	Animator.DEFAULT_EASING = 'ease-in-out';
-	Animator.FAULT_WAITING = 100;
+	// animation
+	if( eval('typeof(Animator)') ) {
+		fn.animate = function(options, callback) {
+			return new Animator(this, options, this, this).run(callback).out();
+		};
 
-	Animator.prototype = {
-		chain: function(options) {
-			if( !arguments.length ) return this._chain;
-			if( typeof(options) === 'number' ) return this._chain[options];
+		fn.animator = function(options, scope) {
+			return new Animator(this, options, scope || this, this);
+		};
+	}
+
+	// template
+	if( eval('typeof(Template)') ) {
+		fn.bind = function(data, functions) {
+			this.restore('#bind').save('#bind');
+			return this.each(function() {
+				new Template(this).bind(data, functions);
+			});
+		};
+
+		fn.tpl = function(data, functions) {
+			if( !arguments.length ) {
+				var arr = [];
+				this.each(function() {
+					arr.push(new Template($(this).clone()[0]));
+				});
+				return array_return(arr);
+			} else if( data ) {
+				var arr = [];
+				this.each(function() {
+					var d = data;
+					if( typeof(d) === 'function' ) d = resolve.call(this, d);				
 			
-			if( options === false ) {
-				this._chain = [];
-				return this;
-			}
-
-			var args = options;
-			if( !Array.isArray(args) ) args = [args];
-			for(var i=0; i < args.length; i++) {
-				var o = args[i];
-				if( typeof(o) !== 'object' ) console.error('[WARN] illegal animation options', o);
-				this._chain.push(o);
-			}
+					if( typeof(d.length) !== 'number' ) d = [d];
 			
-			return this;
-		},
-		scope: function(scope) {
-			if( !arguments.length ) return this._scope || this.el;
-			if( scope ) this._scope = scope;
-			return this;
-		},
-		length: function() {
-			return this._chain.length;
-		},
-		out: function(exit) {
-			if( !arguments.length ) return this._exit;
-			this._exit = exit;
-			return this;
-		},
-		reset: function(options) {
-			this.stop();
-			this.first();
-			this.chain(options);
-		},
-		before: function(before) {
-			if( !arguments.length ) return this._before;
-			if( before === false ) {
-				this._before = null;
-				return this;
-			}
-
-			if( typeof(before) !== 'function' ) return console.error('Animator:before function must be a function', before);
-			this._before = before;
-			return this;
-		},
-		run: function(callback) {
-			this.first();
-
-			var before = this.before();
-			if( before ) before.call(this.scope(), this);
-
-			var fn = function() {
-				if( !this.next(fn) && callback ) callback.call(this.scope(), this);
-			};
-
-			fn.call(this);
-
-			return this;
-		},
-		reverse: function(callback) {
-			this.last();
-
-			var before = this.before();
-			if( before ) before.call(this.scope(), this);
-
-			var fn = function() {
-				if( !this.prev(fn) && callback ) callback.call(this.scope(), this);
-			};
-
-			fn.call(this);
-
-			return this;
-		},
-		executeCurrent: function(callback) {
-			var self = this;
-			var finished = false;
-			var fn = function(e) {
-				if( !finished ) {
-					finished = true;
-					self.el.un('transitionend', fn);
-					if( callback ) callback.call(self.scope(), self);
-				}
-			};
-			var options = this.chain(this.index);
-			if( !options ) return false;
-			this.el.on('transitionend', fn);
-			
-			if( typeof(options.delay) === 'number' ) {
-				setTimeout(function() {
-					transition(self.el, options);
-				}, options.delay);
+					for(var i=0; i < d.length; i++) {
+						var el = $(this).clone()[0];
+						if( el.tagName.toLowerCase() === 'script' ) {
+							el = evalHtml(el.textContent || el.innerHTML || el.innerText)[0];
+						}					
+				
+						new Template(el).bind(d[i], functions);
+						arr.push(el);
+					}
+				});
+				return $(arr).context(this);
 			} else {
-				transition(this.el, options);
+				return console.error('illegal data', data);
 			}
-			
-			var wait = Animator.FAULT_WAITING;
-			if( typeof(wait) !== 'number' || isNaN(options.delay) ) wait = 100;
-			if( typeof(options.delay) === 'number' && !isNaN(options.delay) ) wait = wait + options.delay;
-			if( typeof(options.duration) === 'number' && !isNaN(options.duration) ) wait = wait + options.duration;
-			else wait += Animator.DEFAULT_DURATION;
-			setTimeout(function() {
-				if( !finished ) {
-					finished = true;
-					console.log('animation no affects', options);
-					self.el.un('transitionend', fn);
-					if( callback ) callback.call(self.scope(), self);
-				}
-			}, wait);
+		};
+	}
+})($);
 
-			return this;
-		},
-		first: function() {
-			this.index = -1;
-			return this;
-		},
-		last: function() {
-			this.index = -1;
-			return this;
-		},
-		next: function(callback) {
-			var o = this.chain(++this.index);
-			if( !o ) return false;
-			var self = this;
-			var b = this.executeCurrent(function(anim) {
-				if( callback ) callback.call(self, anim);
+
+	
+	var CJS = false;
+	try {
+		eval('(module && exports && require)');
+		CJS = true;
+	} catch(e) {}
+	
+	// regist module system. amd, cjs, traditional
+	if( typeof(window.define) === 'function' ) {
+		if( define.alien ) {
+			define('dom', function(module) {
+				module.exports = $;
 			});
-			if( !b ) return false;
-			return this;
-		},
-		prev: function(callback) {
-			var o = this.chain(--this.index);
-			if( !o ) return false;
-			var self = this;
-			var b = this.executeCurrent(function(anim) {
-				if( callback ) callback.call(self, anim);
+		} else if( define.amd ) {
+			define(function() {
+				return $;
 			});
-			if( !b ) return false;
-			return this;
 		}
-	};
-
-	return Animator;
+	} else if( CJS ) {
+		exports = $;
+	} else {
+		var original = window.$;
+		window.$ = window.Alien = $;
+	
+		$.noConflict = function() {
+			window.$ = original;
+			return $;
+		};
+	}
 })();
 
-
-	
-	var original = window.$;
-	window.$ = window.Alien = $;
-	
-	$.noConflict = function() {
-		window.$ = original;
-		return $;
-	};
-	
-	return $;
-})();
-
-// End Of File (dom.alien.js), Authored by joje6 ({https://github.com/joje6})
+// End Of File (dom.alien.js), attrs ({https://github.com/attrs})

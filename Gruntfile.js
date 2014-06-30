@@ -6,8 +6,17 @@ var files = [
 	'./src/EventDispatcher.js', 
 	'./src/CSS3Calibrator.js',
 	'./src/StyleSession.js',
-	'./src/Selector.js',
 	'./src/Animator.js',
+	'./src/Selector.js',
+	'./src/Extentions.js',
+	'./src/EOF.js'
+];
+
+var files_tiny = [
+	'./src/BOF.js',
+	'./src/CSS3Calibrator.js',
+	'./src/StyleSession.js',
+	'./src/Selector.js',
 	'./src/EOF.js'
 ];
 
@@ -43,7 +52,8 @@ module.exports = function(grunt) {
 			},
 			basic_and_extras: {
 		      files: {
-		        'build/dom.alien.js': files			
+		        'build/attrs.dom.js': files,
+				'build/attrs.dom.tiny.js': files_tiny
 		      }
 		    }
 		},
@@ -53,7 +63,8 @@ module.exports = function(grunt) {
 			},
 			dist: {
 				files: {
-					'build/dom.alien.min.js': ['build/dom.alien.js']
+					'build/attrs.dom.min.js': ['build/attrs.dom.js'],
+					'build/attrs.dom.tiny.min.js': ['build/attrs.dom.tiny.js']
 				}
 			}
 		},
@@ -73,7 +84,7 @@ module.exports = function(grunt) {
 		},
 		watch: {
 			files: ['Gruntfile.js', 'src/**/*'],
-			tasks: ['concat'],
+			tasks: ['concat', 'uglify'],
 		}
 	});
 

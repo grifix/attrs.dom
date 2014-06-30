@@ -1,6 +1,6 @@
 {
-	"bundleId": "dom.alien",
-	"name": "dom.alien",
+	"bundleId": "attrs.dom",
+	"name": "attrs.dom",
 	"version": "0.1.0",
 	"description": "dom selector",
 	"author": {
@@ -10,10 +10,10 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "git://github.com/attrs/dom.alien.git"
+		"url": "git://github.com/attrs/attrs.dom.git"
 	},
 	"bugs": {
-		"url": "https://github.com/attrs/dom.alien/issues"
+		"url": "https://github.com/attrs/attrs.dom/issues"
 	},
 	"licenses": [
 		{
