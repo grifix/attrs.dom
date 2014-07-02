@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+		<meta name="author" content="joje.attrs@gmail.com">
+		
+		<title>Timetable Example</title>
+
+		<link rel="stylesheet/less" type="text/css" href="css/style.less" />
+		<script src="//cdnjs.cloudflare.com/ajax/libs/less.js/1.7.3/less.min.js"></script>
+		<script type="text/javascript" src="../../build/attrs.dom.js"></script>
+		
+		<script type="text/javascript">
+		//<![CDATA[
+			
+			// bind 개선 & data observer 도입
+			// 
+			
+		
+			var $ = require('attrs.dom');
+			var Ajax = require('ajax');			
+			
+			$.ready(function(e) {
+				var timetable = new Timetable({
+					cols: ['room1', 'room2', 'room3'],
+					unit: 'date',
+					mapper: {
+						col: function(data) {
+							var booked = data.booked;
+						},
+						row: function(data) {
+						}
+					},
+					data: [
+						{
+							id: '0001',
+							name: 'Somebody',
+							mobile: '000-0000-0000',
+							requested: '2014-07-01',
+							confirmed: '',
+							comment: 'User Comment',
+							memo: 'Admin Memo',
+							status: 'wait',
+							booked: [
+								{
+									assign: '2014-07-10',
+									id: 'room-a',
+									price: 50000				
+								}, {
+									assign: '2014-07-10',
+									id: 'room-c',
+									price: 70000				
+								}
+							],
+							billing: {
+								total: 120000,
+								discount: 20000,
+								payment: 100000,
+								settle: 120000
+							}
+						}, {
+							id: '0002',
+							name: 'Somebody',
+							mobile: '000-0000-0000',
+							requested: '2014-07-01',
+							confirmed: '2014-07-02',
+							comment: 'User Comment',
+							memo: 'Admin Memo',
+							status: 'comfirm',
+							booked: [
+								{
+									assign: '2014-07-11',
+									id: 'room-b',
+									price: 60000				
+								}
+							],
+							billing: {
+								total: 60000,
+								discount: 0,
+								payment: 60000
+							}
+						}
+					]
+				});
+				
+				timetable.cols('room4', true);
+				timetable.attachTo('#box .contents');
+			});
+			
+			// class Timetable
+			function Timetable(options) {
+				this.options = options;
+				this.el = $.create('div.alien.timetable');
+				this.build();
+			}
+			
+			Timetable.prototype = {
+				attachTo: function(target) {
+					this.el.appendTo(target);
+					return this;
+				},
+				build: function() {
+					var el = this.el;
+					el.create('div.filter').create('input').attr({
+						'type': 'text',
+						'name': 'filter',
+						'placeholder': '검색어를 입력하세요. (이름, 연락처, 메모 등)',
+						'autocapitalize': 'off'
+					});
+					this.table = el.create('table.main-table')
+							.create('thead')
+							.create('tr')
+							.out(2)
+							.create('tbody')
+							.out('table');
+							
+					console.log('table', this.table);
+					
+					var o = this.options;
+					if( o.cols ) this.cols(o.cols);
+					if( o.rows ) this.rows(o.rows);
+				},
+				rows: function(rows) {					
+					return this;
+				},
+				cols: function(cols, flag) {
+					var el = this.el;
+					if( !arguments.length ) {
+						return (this._cols && this._cols.slice()) || [];
+					} else if( arguments.length === 1 ) {
+						this._cols = cols;
+						
+						// claer all cols & rows
+						el.find('td').detach();
+						
+						// add header
+						el.find('thead > tr').create('th.unit').out()
+						.create('th', cols).call(function(col) {
+							$(this).ac('col-' + col).html(col);
+						});
+						
+						el.find('tbody > tr').create('td.unit').out().create('td', cols).call(function(col) {
+							$(this).ac('col-' + col);
+						});
+					} else if( flag === true ) {
+						
+					} else if( flag === false ) {
+						// remove target slot
+						this._cols = [];
+					} else {
+						console.error('illegal flag parameter', flag);
+					}
+					
+					return this;
+				},
+				data: function(data) {
+					if( !arguments.length ) return (this._data && this._data.slice()) || [];
+					
+					if( !this._data ) this._data = [];
+					
+					if( !Array.isArray(data) ) data = [data];
+					
+					var mapper = this.options.mapper;
+					if( !mapper ) return console.error('not found mapper');
+					for(var i=0; i < data.length; i++) {
+						this.data.push(data[i]);
+					}
+					
+					return this;
+				},
+				clear: function() {
+					this.data([]);
+				}
+			};
+			
+			/*$.ready(function() {				
+				var c = $.create('div.item', ['a', 'b', 'c']).call(function(d) {
+					$(this).ac(d);
+				}).parent().children('.item.b');
+				console.log(c);
+			});*/
+		//]]>
+		</script>
+		
+		<script id="tpl-block" type="text/html">
+			<div id="block-{id}" class="block" title="{title}">
+				<em>{date:date}</em>
+				<h1>{title}</h1>
+				<p>{description}</p>
+			</div>
+		</script>
+	</head>
+	<body>
+		<div id="content">
+			<div id="box" class="org-module simple-box">
+				<h3 class="title ">
+					<a class="link" href="#timetable">
+						<span class="stats">
+							3
+							<span class="octicon chevron-right"></span>
+						</span>
+						예약현황
+					</a>
+				</h3>
+				
+				<div class="contents">					
+				</div>
+	  		</div>			
+		</div>
+		
+		<div>
+			<!-- 
+				<div class="alien timetable">
+					<div class="filter">
+						<input type="text" name="filter" placeholder="검색어를 입력하세요. (이름, 연락처, 메모 등)" autocapitalize="off">
+					</div>
+					<table class="main-table">
+						<thead>
+							<tr>
+								<th class="unit"></th>
+								<th class="room-a">객실A</th>
+								<th class="room-b">객실B</th>
+								<th class="room-c">객실C</th>
+								<th class="room-d">객실D</th>
+								<th class="room-e">객실E</th>
+								<th class="room-f">객실F</th>
+								<th class="room-g">객실G</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<td class="unit">2013.06.01</td>
+								<td class="room-a"></td>
+								<td class="room-b"></td>
+								<td class="room-c"></td>
+								<td class="room-d"></td>
+								<td class="room-e"></td>
+								<td class="room-f"></td>
+								<td class="room-g"></td>
+							</tr>
+							<tr>
+								<td class="unit">2013.06.01</td>
+								<td class="room-a"></td>
+								<td class="room-b"></td>
+								<td class="room-c"></td>
+								<td class="room-d"></td>
+								<td class="room-e"></td>
+								<td class="room-f"></td>
+								<td class="room-g"></td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			-->
+		</div>
+	</body>
+</html>

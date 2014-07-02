@@ -1,0 +1,34 @@
+{
+	spotId: 'testspot',
+	name: 'A',
+	location: {
+		lat: 0,
+		lng: 0,
+		address: '주소'	
+	},
+	items: [
+		{
+			id: 'room-a',
+			name: 'Room A',
+			description: 'Room A description'						
+		}, {
+			id: 'room-b',
+			name: 'Room B',
+			description: 'Room B description'						
+		}, {
+			id: 'room-c',
+			name: 'Room C',
+			description: 'Room C description'						
+		}
+	],
+	unit: 'date',
+	informations: {
+		
+	},
+	user: {
+		userId: 'test',
+		name: 'Test',
+		infomation: {
+		}
+	}
+}

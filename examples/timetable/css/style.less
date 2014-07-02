@@ -1,0 +1,148 @@
+@base: #fff;
+@highlight: #f8f8f8;
+@border: #ddd;
+
+@font-face {
+    font-family: octicons;
+    src: url(octicons.woff);
+}
+
+* {
+	box-sizing: border-box;
+	padding: 0;
+	margin: 0;
+}
+
+body {
+	font: 13px Helvetica, arial, freesans, clean, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol";
+	padding: 10px;
+}
+
+a {
+	color: #4183c4;
+	text-decoration: none;
+}
+
+input, textarea {	
+	min-height: 34px;
+	padding: 7px 8px;
+	color: #333;
+	background-color: #fff;
+	background-repeat: no-repeat;
+	background-position: right center;
+	border: 1px solid #ccc;
+	border-radius: 3px;
+	box-shadow: inset 0 1px 2px rgba(0,0,0,0.075);
+	vertical-align: middle;
+}
+
+.octicon {
+	font: normal normal 16px octicons;
+	line-height: 1;
+	display: inline-block;
+	text-decoration: none;
+	font-smoothing: antialiased;
+	
+	&.chevron-right:before {
+		content: '\f078';
+	}
+}
+
+.simple-box {
+	margin-bottom: 20px;
+	border-radius: 3px;
+	border: 1px solid #ddd;
+	background-color: #fff;
+	
+	h3.title {
+		--margin: -15px -15px 0;
+		font-size: 18px;
+		border-bottom: 1px solid #eee;
+	}
+	
+	a.link {
+		display: block;
+		padding: 10px 15px;
+		color: #333;
+	}
+	
+	.stats {
+		margin-top: 3px;
+		float: right;
+		font-size: 14px;
+		color: #999;
+	}
+	
+	.contents {
+		--overflow: scroll;
+		padding: 18px 15px;
+	}
+	
+	.footer {
+		padding: 10px 15px;
+	}
+}
+
+.alien.timetable {
+	line-height: 20px;
+	
+	.filter input[type=text] {
+		padding: 4px 8px 5px 8px;
+		width: 100%;
+		font-size: 12px;
+		border: 0;
+		border-radius: 0;;
+		border: 1px solid @border;
+		border-bottom: none;
+		outline: none;
+	}
+
+	table.main-table {
+		width: 100%;
+		margin-bottom: 0;
+		margin-top: 0;
+		border-collapse: collapse;
+		border-spacing: 0;
+		border-color: gray;
+		table-layout: fixed;
+		
+		thead {
+			vertical-align: middle;
+			border-color: inherit;
+		}
+
+		tr {
+			background-color: #fff;
+		}
+
+		thead th {
+			padding: 5px;
+			text-align: center;
+			line-height: 1.7;
+			border: 1px solid @border;
+	
+			font-weight: bold;
+			background: #f8f8f8;
+		}
+
+		tbody td {
+			padding: 5px;
+			text-align: center;
+			border-right: 1px solid @border;
+			line-height: 1.7;
+		}
+
+		tbody td.unit {
+			border: 1px solid @border;
+		}
+
+		tbody tr:last-child td {
+			border-bottom: 1px solid @border;
+		}
+
+		tbody tr:nth-child(2n) {
+			background-color: @highlight;
+		}
+	}
+}
+

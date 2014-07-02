@@ -1,0 +1,124 @@
+{
+	spotId: 'testspot',
+	requested: {
+		range: {
+			start: '2014-07-01',
+			end: '2014-07-31'
+		}
+	},
+	prices: [
+		{
+			id: 'price-01',
+			title: '요금01',
+			table: {
+				'room-a': 50000,
+				'room-b': 60000,
+				'room-c': 70000
+			}
+		}, {
+			id: 'price-02',
+			title: '요금01',
+			table: {
+				'room-a': 50000,
+				'room-b': 60000,
+				'room-c': 70000
+			}
+		}
+	],
+	assigned: {
+		'2014-07-01': 'price-01',
+		'2014-07-02': 'price-01',
+		'2014-07-03': 'price-01',
+		'2014-07-04': 'price-01',
+		'2014-07-05': 'price-01',
+		'2014-07-06': 'price-01',
+		'2014-07-07': 'price-01',
+		'2014-07-08': 'price-02',
+		'2014-07-09': 'price-02',
+		'2014-07-10': 'price-02',
+		'2014-07-11': 'price-01',
+		'2014-07-12': 'price-01',
+		'2014-07-13': 'price-01',
+		'2014-07-14': 'price-01',
+		'2014-07-15': 'price-01',
+		'2014-07-16': 'price-01'
+	},
+	reservations: [
+		{
+			id: '0001',
+			name: 'Somebody',
+			mobile: '000-0000-0000',
+			requested: '2014-07-01',
+			confirmed: '',
+			comment: 'User Comment',
+			memo: 'Admin Memo',
+			status: 'wait',
+			booked: [
+				{
+					assign: '2014-07-10',
+					id: 'room-a',
+					price: 50000				
+				}, {
+					assign: '2014-07-10',
+					id: 'room-c',
+					price: 70000				
+				}
+			],
+			priceType: {
+				id: 'price-01',
+				title: '요금01',
+				table: {
+					'room-a': 50000,
+					'room-b': 60000,
+					'room-c': 70000
+				}
+			},
+			billing: {
+				total: 120000,
+				discount: 20000,
+				payment: 100000,
+				settle: 120000
+			}
+		}, {
+			id: '0002',
+			name: 'Somebody',
+			mobile: '000-0000-0000',
+			requested: '2014-07-01',
+			confirmed: '2014-07-02',
+			comment: 'User Comment',
+			memo: 'Admin Memo',
+			status: 'comfirm',
+			receipt: [
+				{
+					paymentId: '0002',
+					pg: 'inipay',
+					method: 'VCard',
+					type: 'payment',
+					tid: '20140701cc',
+					amount: 60000
+				}
+			],
+			booked: [
+				{
+					assign: '2014-07-11',
+					id: 'room-b',
+					price: 60000				
+				}
+			],
+			priceType: {
+				id: 'price-01',
+				title: '요금01',
+				table: {
+					'room-a': 50000,
+					'room-b': 60000,
+					'room-c': 70000
+				}
+			},
+			billing: {
+				total: 60000,
+				discount: 0,
+				payment: 60000
+			}
+		}
+	]
+}

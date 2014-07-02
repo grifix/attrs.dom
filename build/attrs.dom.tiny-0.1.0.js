@@ -3,7 +3,7 @@
  * 
  * @author: joje (https://github.com/joje6)
  * @version: 0.1.0
- * @date: 2014-07-01 2:46:46
+ * @date: 2014-07-02 16:44:15
 */
 
 (function() {
@@ -1122,13 +1122,6 @@ if( false ) {
 }
 
 
-/*!
- * jojequery (MIT License)
- *
- * @author: joje6 (joje.attrs@gmail.com)
- * @version: draft
- * @date: 2014-06-25
-*/
 if( !String.prototype.startsWith ) {
 	String.prototype.startsWith = function(s) {
 		return this.indexOf(s) === 0;
@@ -1547,9 +1540,8 @@ var $ = (function() {
 		});
 	};
 	
-	prototype.out = function(step) {
+	prototype.out = prototype.end = function(step) {
 		step = step || 1;
-		if( typeof(step) !== 'number' ) return console.error('invalid parameter', step);
 				
 		var c = this;
 		var last = c;
@@ -1557,11 +1549,13 @@ var $ = (function() {
 		for(;(c = (c.context && c.context()));) {
 			cnt++;
 			if( c ) last = c;
-			if( step === cnt ) return last;
+			if( typeof(step) === 'number' && step === cnt ) return last;
+			else if( typeof(step) === 'string' && last.is(step) ) return last;
+			
 			if( cnt > 100 ) return console.error('so many out', this);
 		}
 		
-		return last;
+		return console.error('can not found parent context:' + (step || ''));
 	};
 	
 	return $;
@@ -2185,6 +2179,7 @@ var $ = (function() {
 		}
 		
 		if( typeof(args) === 'number') args = new Array(args);
+		if( typeof(args) === 'string') args = [args];
 		if( args && typeof(args.length) !== 'number' ) args = [args];
 		
 		var arr = [];
