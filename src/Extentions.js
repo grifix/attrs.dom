@@ -227,7 +227,7 @@
 						arr.push(el);
 					}
 				});
-				return $(arr).context(this);
+				return $(arr).owner(this);
 			} else {
 				return console.error('illegal data', data);
 			}

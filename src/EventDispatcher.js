@@ -4,7 +4,7 @@ var EventDispatcher = (function() {
 	var seq = 100;
 
 	var EventObjectSeq = 1;
-	var EventObject = function AlienEvent(o) {
+	var EventObject = function CustomEvent(o) {
 		this.options(o);
 	};
 

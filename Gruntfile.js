@@ -2,7 +2,6 @@ var files = [
 	'./build/attrs.module.js',
 	'./src/BOF.js',
 	'./src/DateUtil.js',
-	'./src/TagTranslator.js',
 	'./src/Template.js',
 	'./src/EventDispatcher.js', 
 	'./src/CSS3Calibrator.js',
@@ -18,7 +17,6 @@ var files = [
 var files_light = [
 	'./src/BOF.js',
 	'./src/DateUtil.js',
-	'./src/TagTranslator.js',
 	'./src/Template.js',
 	'./src/EventDispatcher.js', 
 	'./src/CSS3Calibrator.js',
@@ -133,7 +131,8 @@ module.exports = function(grunt) {
 	grunt.loadNpmTasks('grunt-contrib-concat');
 	grunt.loadNpmTasks('grunt-http');
 
-	grunt.registerTask('default', ['http', 'concat', 'uglify']);
+	grunt.registerTask('refresh', ['http', 'concat', 'uglify']);
+	grunt.registerTask('default', ['concat', 'uglify']);
 	grunt.registerTask('lint', ['http', 'concat', 'uglify', 'jshint']);
 	grunt.registerTask('test', ['http', 'concat', 'uglify', 'jshint', 'qunit']);
 };

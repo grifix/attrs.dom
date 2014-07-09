@@ -3,7 +3,7 @@
  * 
  * @author: joje (https://github.com/joje6)
  * @version: 0.1.0
- * @date: 2014-06-30 12:50:24
+ * @date: 2014-07-02 22:16:11
 */
 
 (function() {
@@ -873,7 +873,7 @@ var Require = (function() {
 		var bundles = {
 			'window': window,
 			'document': document,
-			'ajax': Ajax,
+			'ajax': function(module) {  module.exports = Ajax; },
 			'path': function(module) {  module.exports = Path; },
 			'events': function(module) {  module.exports = EventDispatcher; }
 		};

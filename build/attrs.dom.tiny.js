@@ -3,7 +3,7 @@
  * 
  * @author: joje (https://github.com/joje6)
  * @version: 0.1.0
- * @date: 2014-07-02 16:44:15
+ * @date: 2014-07-09 18:2:18
 */
 
 (function() {
@@ -1159,21 +1159,20 @@ if ( !Array.prototype.every ) {
 var $ = (function() {
 	"use strict";
 	
-	function Selector(selector, criteria, single, context) {
+	function Selection(selector, criteria, single) {
 		this.length = 0;
-		if( context ) this.context(context);
 		this.refresh.apply(this, arguments);
 	}
 	
 	var __root__ = {};
-	function $(selector, criteria, single, context) {
+	function $(selector, criteria, single) {
 		if( selector instanceof $ ) return selector;
 		if( selector === document || selector === window ) return $;
-		if( selector !== __root__ ) return new Selector(selector, criteria, single, context);
+		if( selector !== __root__ ) return new Selection(selector, criteria, single);
 	}
 	
 	$.prototype = new Array();
-	var prototype = Selector.prototype = new $(__root__);
+	var prototype = Selection.prototype = new $(__root__);
 	
 	$.on = function(type, fn, bubble) {
 		if( window.addEventListener ) {
@@ -1206,13 +1205,9 @@ var $ = (function() {
 		return $.on('DOMContentLoaded', fn);
 	};
 	
-	$.load = function(fn) {
-		return $.on('load', fn);
-	};
-	
 	$.create = function() {
 		var tmp = $(document.createElement('div'));
-		var items = tmp.create.apply(tmp, arguments).context(null);
+		var items = tmp.create.apply(tmp, arguments).owner(null);
 		tmp = null;
 		return items;
 	};
@@ -1223,6 +1218,12 @@ var $ = (function() {
 	function isNode(o){
 		return (typeof(Node) === "object") ? o instanceof Node : 
 			(o && typeof(o.nodeType) === 'number' && typeof(o.nodeName) === 'string');
+	}
+	
+	function isElement(el) {
+		if( typeof(el) !== 'object' ) return false;
+		else if( !(window.attachEvent && !window.opera) ) return (el instanceof window.Element);
+		else return (el.nodeType == 1 && el.tagName);
 	}
 	
 	function merge(o) {
@@ -1260,12 +1261,6 @@ var $ = (function() {
 		if( !arr || !arr.length ) return null;
 		if( arr.length === 1 ) return arr[0];
 		return arr;
-	}
-	
-	function isElement(el) {
-		if( typeof(el) !== 'object' ) return false;
-		else if( !(window.attachEvent && !window.opera) ) return (el instanceof window.Element);
-		else return (el.nodeType == 1 && el.tagName);
 	}
 	
 	function isHtml(html) {
@@ -1473,6 +1468,11 @@ var $ = (function() {
 		return this;
 	};
 	
+	prototype.reverse = function() {
+		Array.prototype.reverse.call(this);
+		return this;
+	};
+	
 	prototype.clear = function() {
 		var len = this.length;
 		if( len > 0 ) {
@@ -1519,17 +1519,21 @@ var $ = (function() {
 		});
 	};
 	
+	prototype.void = function() {
+		return;	
+	};
+	
 	prototype.arg = function(value) {
 		if( !arguments.length ) return this.data('arg');
 		this.data('arg', value);
 		return this;
 	};
 	
-	prototype.context = function(context) {
-		if( !arguments.length ) return this.__context__;
+	prototype.owner = function(owner) {
+		if( !arguments.length ) return this.__owner__;
 		
-		if( context && !(context instanceof $) ) return console.error('context must be an DOM($) instance but', context);
-		this.__context__ = context || null;
+		if( owner && !(owner instanceof $) ) return console.error('owner selection must be an "$" instance, but', owner);
+		this.__owner__ = owner || null;
 		return this;
 	};
 	
@@ -1546,7 +1550,7 @@ var $ = (function() {
 		var c = this;
 		var last = c;
 		var cnt = 0;
-		for(;(c = (c.context && c.context()));) {
+		for(;(c = (c.owner && c.owner()));) {
 			cnt++;
 			if( c ) last = c;
 			if( typeof(step) === 'number' && step === cnt ) return last;
@@ -1555,7 +1559,7 @@ var $ = (function() {
 			if( cnt > 100 ) return console.error('so many out', this);
 		}
 		
-		return console.error('can not found parent context:' + (step || ''));
+		return console.error('can not found parent:' + (step || ''));
 	};
 	
 	return $;
@@ -1667,6 +1671,8 @@ var $ = (function() {
 				if( key.hasOwnProperty(k) ) this.attr(k, key[k]);
 			}
 			return this;
+		} else if( !key ) {
+			return this;
 		}
 		
 		if( typeof(key) !== 'string' ) return console.error('invalid key', key);
@@ -1742,7 +1748,7 @@ var $ = (function() {
 	
 	function findChild(method, selector, arr) {
 		if( typeof(selector) === 'number' ) {
-			var c = this[method][selector - 1];
+			var c = this[method][selector];
 			if( c ) arr.push(c);
 		} else if( typeof(selector) === 'string' && !selector.startsWith('arg:') ) {	// find by selector
 			var children = this[method];
@@ -2010,17 +2016,17 @@ var $ = (function() {
 			var p = this.parentNode;
 			if( p ) arr.push(p);
 		});
-		return $(arr).context(this);
+		return $(arr).owner(this);
 	};
 	
 	fn.all = fn.find = function(selector) {
 		if( !arguments.length ) selector = '*';
-		return $(selector, this).context(this);
+		return $(selector, this).owner(this);
 	};
 	
 	fn.one = function(selector) {
 		if( !arguments.length ) selector = '*';
-		return $(selector, this, true).context(this);
+		return $(selector, this, true).owner(this);
 	};
 	
 	fn.children = function(selector) {
@@ -2028,7 +2034,7 @@ var $ = (function() {
 		this.each(function() {
 			findChild.call(this, 'children', selector, arr);
 		});
-		return $(arr).context(this);
+		return $(arr).owner(this);
 	};
 	
 	fn.contents = function(selector) {
@@ -2036,7 +2042,7 @@ var $ = (function() {
 		this.each(function() {
 			findChild.call(this, 'childNodes', selector, arr);
 		});
-		return $(arr).context(this);	
+		return $(arr).owner(this);	
 	};
 	
 	fn.filter = fn.except = function(fn) {
@@ -2063,7 +2069,7 @@ var $ = (function() {
 				if( result !== true ) items.push(this);
 			}			
 		});
-		return $(items).context(this);
+		return $(items).owner(this);
 	};
 	
 	fn.visit = function(fn, direction, containSelf, ctx) {
@@ -2074,7 +2080,7 @@ var $ = (function() {
 		ctx = ctx || this;
 		
 		return this.each(function() {			
-			if( containSelf && fn.call(this, ctx) === false ) return;
+			if( containSelf && fn.call(this, ctx) === false ) return false;
 	
 			var propagation;
 			if( direction === 'up' ) {
@@ -2083,6 +2089,8 @@ var $ = (function() {
 					if( p ) {
 						if( fn.call(p, ctx) !== false ) {
 							propagation(p);
+						} else {
+							return false;
 						}
 					}
 				};
@@ -2094,6 +2102,8 @@ var $ = (function() {
 							var cel = argc[i];
 							if( fn.call(cel, ctx) !== false ) {
 								propagation(cel);
+							} else {
+								return false;
 							}
 						}
 					}
@@ -2120,15 +2130,15 @@ var $ = (function() {
 	};
 	
 	fn.first = function() {
-		return $(this[0]).context(this);
+		return $(this[0]).owner(this);
 	};
 	
 	fn.last = function() {
-		return $(this[this.length - 1]).context(this);
+		return $(this[this.length - 1]).owner(this);
 	};
 	
 	fn.at = function(index) {
-		return $(this[index]).context(this);
+		return $(this[index]).owner(this);
 	};
 	
 	// TODO : 구현미비
@@ -2163,7 +2173,7 @@ var $ = (function() {
 				arr.push(el);
 			}
 		});
-		return $(arr).context(this);
+		return $(arr).owner(this);
 	};
 	
 	fn.create = function(accessor, args, fn) {
@@ -2192,7 +2202,7 @@ var $ = (function() {
 			}
 		});
 		
-		return $(arr).context(this);
+		return $(arr).owner(this);
 	};
 	
 	fn.save = function(name) {
@@ -2276,6 +2286,7 @@ var $ = (function() {
 			var before = this;
 			if( target ) {
 				els.each(function() {
+					//console.error('before', this, before, target);
 					target.insertBefore(this, before);
 				});
 			}
@@ -2291,7 +2302,6 @@ var $ = (function() {
 			if( !(els instanceof $) ) els = $(els);
 			
 			var target = this.parentNode;
-			console.log(target.children);
 			if( target ) {
 				var before = this.nextSibling; //;target.children[target.children.indexOf(this) + 1];
 				els.each(function() {
@@ -2368,7 +2378,7 @@ var $ = (function() {
 			newp.appendChild(this);
 			arr.push(newp);
 		});		
-		return $(arr).context(this);
+		return $(arr).owner(this);
 	};
 	
 	

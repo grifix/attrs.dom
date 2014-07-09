@@ -17,72 +17,25 @@
 			
 			// bind 개선 & data observer 도입
 			// 
+			// 
 			
 		
 			var $ = require('attrs.dom');
-			var Ajax = require('ajax');			
+			var Ajax = require('ajax');
 			
 			$.ready(function(e) {
+				var data = Ajax.json('api/status.json');
+				
 				var timetable = new Timetable({
 					cols: ['room1', 'room2', 'room3'],
-					unit: 'date',
+					rows: 'date',
 					mapper: {
 						col: function(data) {
 							var booked = data.booked;
 						},
 						row: function(data) {
 						}
-					},
-					data: [
-						{
-							id: '0001',
-							name: 'Somebody',
-							mobile: '000-0000-0000',
-							requested: '2014-07-01',
-							confirmed: '',
-							comment: 'User Comment',
-							memo: 'Admin Memo',
-							status: 'wait',
-							booked: [
-								{
-									assign: '2014-07-10',
-									id: 'room-a',
-									price: 50000				
-								}, {
-									assign: '2014-07-10',
-									id: 'room-c',
-									price: 70000				
-								}
-							],
-							billing: {
-								total: 120000,
-								discount: 20000,
-								payment: 100000,
-								settle: 120000
-							}
-						}, {
-							id: '0002',
-							name: 'Somebody',
-							mobile: '000-0000-0000',
-							requested: '2014-07-01',
-							confirmed: '2014-07-02',
-							comment: 'User Comment',
-							memo: 'Admin Memo',
-							status: 'comfirm',
-							booked: [
-								{
-									assign: '2014-07-11',
-									id: 'room-b',
-									price: 60000				
-								}
-							],
-							billing: {
-								total: 60000,
-								discount: 0,
-								payment: 60000
-							}
-						}
-					]
+					}
 				});
 				
 				timetable.cols('room4', true);
@@ -103,33 +56,46 @@
 				},
 				build: function() {
 					var el = this.el;
-					el.create('div.filter').create('input').attr({
-						'type': 'text',
-						'name': 'filter',
-						'placeholder': '검색어를 입력하세요. (이름, 연락처, 메모 등)',
-						'autocapitalize': 'off'
-					});
-					this.table = el.create('table.main-table')
+					this.table = el.create('table.main')
 							.create('thead')
 							.create('tr')
 							.out(2)
 							.create('tbody')
 							.out('table');
 							
-					console.log('table', this.table);
-					
 					var o = this.options;
 					if( o.cols ) this.cols(o.cols);
 					if( o.rows ) this.rows(o.rows);
 				},
-				rows: function(rows) {					
+				rows: function(rows, flag) {
+					if( !arguments.length ) return (this._rows && this._rows.slice()) || []
+					
+					if( !this._rows ) this._rows = [];
+					if( rows === 'date' ) {
+						this._rows = [];
+						var now = new Date();
+						var year = 2004;
+						var month = 6;
+						var lastOfMonth = 30;
+						for(var i=1; i <= lastOfMonth; i++) {
+							var formatted = new Date(year, month, i);
+							this._rows.push(formatted);
+						}
+					} else if( rows ) {
+						if( !Array.isArray(rows) ) rows = [rows];
+						
+					}
+					
 					return this;
 				},
 				cols: function(cols, flag) {
 					var el = this.el;
 					if( !arguments.length ) {
 						return (this._cols && this._cols.slice()) || [];
+					} else if( !cols ) {
+						return console.error('illegal parameter', cls, flag);
 					} else if( arguments.length === 1 ) {
+						if( !Array.isArray(cols) ) cols = [cols];
 						this._cols = cols;
 						
 						// claer all cols & rows
@@ -150,12 +116,12 @@
 						// remove target slot
 						this._cols = [];
 					} else {
-						console.error('illegal flag parameter', flag);
+						console.error('illegal parameter', cols, flag);
 					}
 					
 					return this;
 				},
-				data: function(data) {
+				data: function(data, row, col) {
 					if( !arguments.length ) return (this._data && this._data.slice()) || [];
 					
 					if( !this._data ) this._data = [];
@@ -204,18 +170,18 @@
 						예약현황
 					</a>
 				</h3>
-				
-				<div class="contents">					
+				<div class="filter">
+					<input type="text" name="filter" placeholder="검색어를 입력하세요. (이름, 연락처, 메모 등)" autocapitalize="off">
 				</div>
-	  		</div>			
+				
+				<div class="contents">
+				</div>
+	  		</div>
 		</div>
 		
 		<div>
 			<!-- 
 				<div class="alien timetable">
-					<div class="filter">
-						<input type="text" name="filter" placeholder="검색어를 입력하세요. (이름, 연락처, 메모 등)" autocapitalize="off">
-					</div>
 					<table class="main-table">
 						<thead>
 							<tr>

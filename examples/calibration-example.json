@@ -1,0 +1,305 @@
+rule : ".cmp, .cmp:input-placeholder, #cmp, .cmp > .a, .cmp .b"
+value : {
+	'display': ['box', 'flex'],
+	'box-flex': 1,
+	'box-align': 'start',
+	'margin': 0,
+	'height': 100,
+	'transition': 'transform, width',
+	'font-weight': 'bold'
+}
+result : 
+{
+	"original": {
+		".cmp": {
+			"display": [
+				"box",
+				"flex"
+			],
+			"box-flex": "1",
+			"box-align": "start",
+			"margin": "0",
+			"height": "100px",
+			"transition": "transform, width",
+			"font-weight": "bold"
+		},
+		".cmp::placeholder": {
+			"display": [
+				"box",
+				"flex"
+			],
+			"box-flex": "1",
+			"box-align": "start",
+			"margin": "0",
+			"height": "100px",
+			"transition": "transform, width",
+			"font-weight": "bold"
+		},
+		"#cmp": {
+			"display": [
+				"box",
+				"flex"
+			],
+			"box-flex": "1",
+			"box-align": "start",
+			"margin": "0",
+			"height": "100px",
+			"transition": "transform, width",
+			"font-weight": "bold"
+		},
+		".cmp > .a": {
+			"display": [
+				"box",
+				"flex"
+			],
+			"box-flex": "1",
+			"box-align": "start",
+			"margin": "0",
+			"height": "100px",
+			"transition": "transform, width",
+			"font-weight": "bold"
+		},
+		".cmp .b": {
+			"display": [
+				"box",
+				"flex"
+			],
+			"box-flex": "1",
+			"box-align": "start",
+			"margin": "0",
+			"height": "100px",
+			"transition": "transform, width",
+			"font-weight": "bold"
+		}
+	},
+	"device": {
+		".cmp": {
+			"display": [
+				"-webkit-box",
+				"-webkit-flex"
+			],
+			"-webkit-box-flex": "1",
+			"-webkit-box-align": "start",
+			"margin": "0",
+			"height": "100px",
+			"-webkit-transition": "-webkit-transform, width",
+			"font-weight": "bold"
+		},
+		".cmp::-webkit-input-placeholder": {
+			"display": [
+				"-webkit-box",
+				"-webkit-flex"
+			],
+			"-webkit-box-flex": "1",
+			"-webkit-box-align": "start",
+			"margin": "0",
+			"height": "100px",
+			"-webkit-transition": "-webkit-transform, width",
+			"font-weight": "bold"
+		},
+		"#cmp": {
+			"display": [
+				"-webkit-box",
+				"-webkit-flex"
+			],
+			"-webkit-box-flex": "1",
+			"-webkit-box-align": "start",
+			"margin": "0",
+			"height": "100px",
+			"-webkit-transition": "-webkit-transform, width",
+			"font-weight": "bold"
+		},
+		".cmp > .a": {
+			"display": [
+				"-webkit-box",
+				"-webkit-flex"
+			],
+			"-webkit-box-flex": "1",
+			"-webkit-box-align": "start",
+			"margin": "0",
+			"height": "100px",
+			"-webkit-transition": "-webkit-transform, width",
+			"font-weight": "bold"
+		},
+		".cmp .b": {
+			"display": [
+				"-webkit-box",
+				"-webkit-flex"
+			],
+			"-webkit-box-flex": "1",
+			"-webkit-box-align": "start",
+			"margin": "0",
+			"height": "100px",
+			"-webkit-transition": "-webkit-transform, width",
+			"font-weight": "bold"
+		}
+	},
+	"merged": {
+		".cmp": {
+			"display": [
+				"box",
+				"-webkit-box",
+				"flex",
+				"-webkit-flex"
+			],
+			"box-flex": "1",
+			"-webkit-box-flex": "1",
+			"box-align": "start",
+			"-webkit-box-align": "start",
+			"margin": "0",
+			"height": "100px",
+			"transition": "transform, width",
+			"-webkit-transition": "-webkit-transform, width",
+			"font-weight": "bold"
+		},
+		".cmp::placeholder": {
+			"display": [
+				"box",
+				"-webkit-box",
+				"flex",
+				"-webkit-flex"
+			],
+			"box-flex": "1",
+			"-webkit-box-flex": "1",
+			"box-align": "start",
+			"-webkit-box-align": "start",
+			"margin": "0",
+			"height": "100px",
+			"transition": "transform, width",
+			"-webkit-transition": "-webkit-transform, width",
+			"font-weight": "bold"
+		},
+		".cmp::-webkit-input-placeholder": {
+			"display": [
+				"box",
+				"-webkit-box",
+				"flex",
+				"-webkit-flex"
+			],
+			"box-flex": "1",
+			"-webkit-box-flex": "1",
+			"box-align": "start",
+			"-webkit-box-align": "start",
+			"margin": "0",
+			"height": "100px",
+			"transition": "transform, width",
+			"-webkit-transition": "-webkit-transform, width",
+			"font-weight": "bold"
+		},
+		"#cmp": {
+			"display": [
+				"box",
+				"-webkit-box",
+				"flex",
+				"-webkit-flex"
+			],
+			"box-flex": "1",
+			"-webkit-box-flex": "1",
+			"box-align": "start",
+			"-webkit-box-align": "start",
+			"margin": "0",
+			"height": "100px",
+			"transition": "transform, width",
+			"-webkit-transition": "-webkit-transform, width",
+			"font-weight": "bold"
+		},
+		".cmp > .a": {
+			"display": [
+				"box",
+				"-webkit-box",
+				"flex",
+				"-webkit-flex"
+			],
+			"box-flex": "1",
+			"-webkit-box-flex": "1",
+			"box-align": "start",
+			"-webkit-box-align": "start",
+			"margin": "0",
+			"height": "100px",
+			"transition": "transform, width",
+			"-webkit-transition": "-webkit-transform, width",
+			"font-weight": "bold"
+		},
+		".cmp .b": {
+			"display": [
+				"box",
+				"-webkit-box",
+				"flex",
+				"-webkit-flex"
+			],
+			"box-flex": "1",
+			"-webkit-box-flex": "1",
+			"box-align": "start",
+			"-webkit-box-align": "start",
+			"margin": "0",
+			"height": "100px",
+			"transition": "transform, width",
+			"-webkit-transition": "-webkit-transform, width",
+			"font-weight": "bold"
+		}
+	}
+} 
+
+
+
+
+rule : ".cmp"
+value : {
+	'display': ['box', 'flex'],
+	'box-flex': 1,
+	'box-align': 'start',
+	'margin': 0,
+	'height': 100,
+	'transition': 'transform, width',
+	'font-weight': 'bold'
+}
+result : 
+{
+	"original": {
+		".cmp": {
+			"display": [
+				"box",
+				"flex"
+			],
+			"box-flex": "1",
+			"box-align": "start",
+			"margin": "0",
+			"height": "100px",
+			"transition": "transform, width",
+			"font-weight": "bold"
+		}
+	},
+	"device": {
+		".cmp": {
+			"display": [
+				"-webkit-box",
+				"-webkit-flex"
+			],
+			"-webkit-box-flex": "1",
+			"-webkit-box-align": "start",
+			"margin": "0",
+			"height": "100px",
+			"-webkit-transition": "-webkit-transform, width",
+			"font-weight": "bold"
+		}
+	},
+	"merged": {
+		".cmp": {
+			"display": [
+				"box",
+				"-webkit-box",
+				"flex",
+				"-webkit-flex"
+			],
+			"box-flex": "1",
+			"-webkit-box-flex": "1",
+			"box-align": "start",
+			"-webkit-box-align": "start",
+			"margin": "0",
+			"height": "100px",
+			"transition": "transform, width",
+			"-webkit-transition": "-webkit-transform, width",
+			"font-weight": "bold"
+		}
+	}
+} 
