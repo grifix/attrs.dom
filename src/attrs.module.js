@@ -3,7 +3,7 @@
  * 
  * @author: joje (https://github.com/joje6)
  * @version: 0.1.0
- * @date: 2014-07-02 22:16:11
+ * @date: 2014-07-11 0:26:55
 */
 
 (function() {
@@ -59,6 +59,7 @@ var Path = (function() {
 		
 	Path.join = function(base, path) {
 		if( !base ) return path;
+		if( path.trim() === '.' ) return base;
 		if( base instanceof Path ) base = base.src;
 		if( path instanceof Path ) path = path.src;
 

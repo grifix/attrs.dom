@@ -1,5 +1,5 @@
 var files = [
-	'./build/attrs.module.js',
+	'./src/attrs.module.js',
 	'./src/BOF.js',
 	'./src/DateUtil.js',
 	'./src/Template.js',
@@ -48,7 +48,7 @@ module.exports = function(grunt) {
 				options: {
 					url: 'https://raw.githubusercontent.com/attrs/attrs.module/master/build/attrs.module.js',
 				},
-				dest: './build/attrs.module.js'
+				dest: './src/attrs.module.js'
 			}
 		},
 		concat: {
