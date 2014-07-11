@@ -3,7 +3,7 @@
  * 
  * @author: joje (https://github.com/joje6)
  * @version: 0.1.0
- * @date: 2014-07-11 0:27:12
+ * @date: 2014-07-11 19:19:28
 */
 
 /*!
@@ -5002,45 +5002,50 @@ var $ = (function() {
 		return $(items).owner(this);
 	};
 	
-	fn.visit = function(fn, direction, containSelf, ctx) {
-		if( typeof(fn) !== 'function' ) return console.error('fn must be a function');
+	fn.visitup = function(visitor, containSelf) {
+		if( typeof(visitor) !== 'function' ) return console.error('visitor must be a function');
 		
-		if( direction && !~['up', 'down'].indexOf(direction) ) return console.error('invalid direction', direction);
-		containSelf = (containSelf === false) ? false : true;
-		ctx = ctx || this;
+		containSelf = (containSelf === true) ? true : false;
 		
 		return this.each(function() {			
-			if( containSelf && fn.call(this, ctx) === false ) return false;
+			if( containSelf && visitor.call(this) === false ) return false;
 	
-			var propagation;
-			if( direction === 'up' ) {
-				propagation = function(el) {
-					var p = el.parentNode;
-					if( p ) {
-						if( fn.call(p, ctx) !== false ) {
-							propagation(p);
-						} else {
-							return false;
-						}
+			var propagation = function(el) {
+				var p = el.parentNode;
+				if( p ) {
+					if( visitor.call(p) !== false ) {
+						propagation(p);
+					} else {
+						return false;
 					}
-				};
-			} else {
-				propagation = function(el) {
-					var argc = el.children;
-					if( argc ) {
-						for(var i=0; i < argc.length;i++) {
-							var cel = argc[i];
-							if( fn.call(cel, ctx) !== false ) {
-								propagation(cel);
-							} else {
-								return false;
-							}
-						}
-					}
-				};
-			}
+				}
+			};
 
-			propagation(this);
+			return propagation(this);
+		});
+	};
+	
+	fn.visit = function(visitor, containSelf, allcontents) {
+		if( typeof(visitor) !== 'function' ) return console.error('visitor must be a function');
+		
+		containSelf = (containSelf === true) ? true : false;
+		allcontents = (allcontents === true) ? true : false;
+		
+		return this.each(function() {			
+			if( containSelf && visitor.call(this) === false ) return false;
+	
+			var propagation = function(el) {
+				var argc = $((allcontents) ? el.childNodes : el.children);
+				argc.each(function() {
+					if( visitor.call(this) !== false ) {
+						propagation(this);
+					} else {
+						return false;
+					}
+				});
+			};
+
+			return propagation(this);
 		});
 	};
 	
