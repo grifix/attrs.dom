@@ -88,6 +88,18 @@ var $ = (function() {
 		return items;
 	};
 	
+	$.html = function(text) {
+		var el = document.createElement('div');
+		el.innerHTML = text;
+		return $(el).contents().owner(null);
+	};
+	
+	$.text = function(text) {
+		var el = document.createElement('div');
+		el.innerText = text;
+		return $(el).contents().owner(null);
+	};
+	
 	$.fn = prototype;	
 	
 	// common functions
@@ -249,15 +261,15 @@ var $ = (function() {
 		return false;
 	}
 	
-	function create(accessor, contents) {
+	function create(accessor, contents, force) {
 		if( !accessor || typeof(accessor) !== 'string' ) return console.error('invalid parameter', accessor);
 		
 		var el;
-		if( isHtml(accessor) ) {
+		if( force === true || isHtml(accessor) ) {
 			el = evalHtml(accessor)[0];
 			if( !el ) return null;
 			if( html ) el.innerHTML = html;
-			return el; 
+			return el;
 		} else {		
 			var o = assemble(accessor);
 			var tag = o.tag;

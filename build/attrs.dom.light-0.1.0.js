@@ -3,7 +3,7 @@
  * 
  * @author: joje (https://github.com/joje6)
  * @version: 0.1.0
- * @date: 2014-07-13 1:26:8
+ * @date: 2014-07-13 5:10:24
 */
 
 (function() {
@@ -1638,10 +1638,10 @@ if( false ) {
 */
 
 var Device = (function() {
-	"use strict"
-
 	// class device
 	function Device() {
+		"use strict";
+		
 		var nav = window.navigator;
 		var _platform = nav.platform;
 		var agent = nav.userAgent;
@@ -1720,15 +1720,40 @@ var Device = (function() {
 		this.device = device;
 		this.engine = engine;
 		this.browser = browser;
-		this.version = version;
+		this.versionString = version;
+		this.version = parseInt(version.split('.')[0]);
 		this.retina = retina;
 		this.touchable = touchable;
 		this.prefix = prefix;
-		this.hasTransform = hasTransform;
+		this.transform = hasTransform;
 		this.has3d = has3d;
 		this.resolution = resolution;
 
 		this.calibrator = new CSS3Calibrator(this);
+		
+		// represent attributes
+		this.gecko = (this.engine === 'gecko');
+		this.webkit = (this.engine === 'webkit');
+		
+		this.firefox = (this.browser === 'firefox');
+		this.ie = (this.browser === 'msie');
+		this.opera = (this.browser === 'opera');
+		this.chrome = (this.browser === 'chrome');
+		this.safari = (this.browser === 'safari');
+		
+		this.iphone = (this.device === 'iphone');
+		this.ipad = (this.device === 'ipad');
+		this.ipod = (this.device === 'ios');
+
+		this.ios = (this.platform.name === 'ios');
+		this.android = (this.platform.name === 'android');
+		this.osx = (this.platform.name === 'osx');
+		this.windows = (this.platform.name === 'windows');
+		this.linux = (this.platform.name === 'linux');		
+
+		this.phone = (this.platform.type === 'phone');
+		this.tablet = (this.platform.type === 'tablet');
+		this.desktop = (this.platform.type === 'desktop');		
 
 		// gecko 의 경우 innerText 바인딩
 		if( engine === 'gecko' && window.HTMLElement && window.HTMLElement.prototype.__defineGetter__ ) {
@@ -1753,54 +1778,22 @@ var Device = (function() {
 
 	Device.prototype = {
 		is: function(query) {
-			// engine
-			if( query === 'webkit' ) return (this.engine === 'webkit');
-			if( query === 'gecko' ) return (this.engine === 'gecko');
-			if( query === 'netfront' ) return (this.engine === 'netfront');
-			if( query === 'presto' ) return (this.engine === 'presto');
-			if( query === 'trident' ) return (this.engine === 'trident');
-
-			// platform type
-			if( query === 'phone' ) return (this.platform.type === 'phone');
-			if( query === 'tablet' ) return (this.platform.type === 'tablet');
-			if( query === 'dsektop' ) return (this.platform.type === 'dsektop');
-
-			// platform name
-			if( query === 'ios' ) return (this.platform.name === 'ios');
-			if( query === 'iphone' ) return (this.device === 'iphone');
-			if( query === 'ipad' ) return (this.device === 'ipad');
-			if( query === 'ipod' ) return (this.device === 'ipod');			
-			if( query === 'android' ) return (this.platform.name === 'android');
-			if( query === 'mac' ) return (this.platform.type === 'osx' || this.platform.type === 'mac');
-			if( query === 'osx' ) return (this.platform.name === 'osx');
-			if( query === 'windows' ) return (this.platform.name === 'windows');
-			if( query === 'linux' ) return (this.platform.name === 'linux');
-			
-			// features
-			if( query === 'retina' ) return this.retina;
-			if( query === 'touchable' ) return this.touchable;
-			if( query === '3d' ) return this.has3d;
-			if( query === 'transform' ) return this.hasTransform;
-			
-			// browser
-			if( query === 'ie' || query === 'ms' || query === 'msie' ) return (this.browser === 'msie');
-			if( query === 'firefox' ) return (this.browser === 'firefox');
-			if( query === 'kindle' ) return (this.browser === 'kindle');
-			if( query === 'opera' ) return (this.browser === 'opera');
-			if( query === 'chrome' ) return (this.browser === 'chrome');
-			if( query === 'chromium' ) return (this.browser === 'chromium');
-			if( query === 'safari' ) return (this.browser === 'safari');
-			if( query === 'blackberry' ) return (this.browser === 'blackberry');
-			if( query === 'webkit browser' ) return (this.browser === 'webkit');
-			if( query === 'android browser' ) return (this.browser === 'android');			
-
-			return false;
+			with(this) {
+				try {
+					return eval(query);
+				} catch(err) {
+					console.warn('incorrect query [' + query + ']', err.message);
+					return false;
+				} 
+			}
 		}
 	};
 
 	return new Device();
 })();
 
+
+//console.log('Device', Device.is('webkit && version > 30 && desktop'));
 
 var StyleSession = (function() {
 	"use strict"
@@ -3063,6 +3056,18 @@ var $ = (function() {
 		return items;
 	};
 	
+	$.html = function(text) {
+		var el = document.createElement('div');
+		el.innerHTML = text;
+		return $(el).contents().owner(null);
+	};
+	
+	$.text = function(text) {
+		var el = document.createElement('div');
+		el.innerText = text;
+		return $(el).contents().owner(null);
+	};
+	
 	$.fn = prototype;	
 	
 	// common functions
@@ -3224,15 +3229,15 @@ var $ = (function() {
 		return false;
 	}
 	
-	function create(accessor, contents) {
+	function create(accessor, contents, force) {
 		if( !accessor || typeof(accessor) !== 'string' ) return console.error('invalid parameter', accessor);
 		
 		var el;
-		if( isHtml(accessor) ) {
+		if( force === true || isHtml(accessor) ) {
 			el = evalHtml(accessor)[0];
 			if( !el ) return null;
 			if( html ) el.innerHTML = html;
-			return el; 
+			return el;
 		} else {		
 			var o = assemble(accessor);
 			var tag = o.tag;
