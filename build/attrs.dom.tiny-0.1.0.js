@@ -3,7 +3,7 @@
  * 
  * @author: joje (https://github.com/joje6)
  * @version: 0.1.0
- * @date: 2014-07-11 19:19:28
+ * @date: 2014-07-13 1:26:8
 */
 
 (function() {
@@ -1542,6 +1542,10 @@ var $ = (function() {
 		return this.each(function() {
 			resolve.call(this, fn);
 		});
+	};
+	
+	prototype.array = function() {
+		return this.slice();	
 	};
 	
 	prototype.out = prototype.end = function(step) {

@@ -420,6 +420,10 @@ var $ = (function() {
 		});
 	};
 	
+	prototype.array = function() {
+		return this.slice();	
+	};
+	
 	prototype.out = prototype.end = function(step) {
 		step = step || 1;
 				

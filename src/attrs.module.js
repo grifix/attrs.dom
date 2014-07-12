@@ -3,7 +3,7 @@
  * 
  * @author: joje (https://github.com/joje6)
  * @version: 0.1.0
- * @date: 2014-07-11 0:26:55
+ * @date: 2014-07-13 1:25:54
 */
 
 (function() {
@@ -30,6 +30,9 @@ var Path = (function() {
 		},
 		filename: function() {
 			return Path.filename(this.src);
+		},
+		ext: function() {
+			return Path.ext(this.src);
 		},
 		querystring: function() {
 			return Path.querystring(this.src);
@@ -96,7 +99,7 @@ var Path = (function() {
 	};
 	
 	Path.dir = function(path) {
-		if( !path ) return null;
+		if( !path ) return '';
 		if( path instanceof Path ) path = path.src;
 
 		path = path.trim();
@@ -126,13 +129,10 @@ var Path = (function() {
 	};
 	
 	Path.filename = function(path) {
-		if( !path ) return null;
+		if( !path ) return '';
 		if( path instanceof Path ) path = path.src;
 
-		path = path.trim();
-
-		if( ~path.indexOf('?') ) path = path.substring(0, path.indexOf('?'));
-		if( ~path.indexOf('#') ) path = path.substring(0, path.indexOf('#'));
+		path = Path.uri(path).trim();
 
 		if( path.endsWith('/') ) {
 			path = path.substring(0, path.length - 1);
@@ -141,9 +141,20 @@ var Path = (function() {
 			return path.substring(path.lastIndexOf('/') + 1);
 		}
 	};
+	
+	Path.ext = function(path) {
+		if( !path ) return '';
+		if( path instanceof Path ) path = path.src;
+		
+		path = Path.filename(path);
+		
+		var arg = path.split('.');
+		if( arg.length <= 1 ) return '';
+		return arg[arg.length - 1];		
+	};
 
 	Path.uri = function(path) {
-		if( !path ) return null;
+		if( !path ) return '';
 		if( path instanceof Path ) path = path.src;
 
 		path = path.trim();
@@ -155,7 +166,7 @@ var Path = (function() {
 	};
 
 	Path.querystring = function(path) {
-		if( !path ) return null;
+		if( !path ) return '';
 		if( path instanceof Path ) path = path.src;
 
 		path = path.trim();
@@ -165,7 +176,7 @@ var Path = (function() {
 	};
 
 	Path.query = function(path) {
-		if( !path ) return null;
+		if( !path ) return '';
 		if( path instanceof Path ) path = path.src;
 
 		var q = this.querystring(q);
@@ -190,7 +201,7 @@ var Path = (function() {
 	};
 
 	Path.host = function(url) {
-		if( !url ) return null;
+		if( !url ) return '';
 		if( url instanceof Path ) url = url.src;
 
 		if( (i = url.indexOf('://')) >= 0 ) {
@@ -204,7 +215,7 @@ var Path = (function() {
 	};
 
 	Path.parse = function(url) {
-		if( !url ) return null;
+		if( !url ) return {};
 		if( url instanceof Path ) url = url.src;
 
 		return {
@@ -220,7 +231,7 @@ var Path = (function() {
 	};
 
 	Path.parent = function(path) {
-		if( !path ) return null;
+		if( !path ) return '';
 		if( path instanceof Path ) path = path.src;
 
 		path = this.dir(path);
@@ -498,7 +509,7 @@ var Ajax = (function() {
 										var json = JSON.parse(data);
 										data = json;
 									} catch(e) {
-										console.error('json parse error:', e.message, '[in ' + url + ']');
+										console.warn('[warn] json parse error:', e.message, '[in ' + url + ']');
 									}
 								} else if( o.parse && contentType && contentType.indexOf('xml') >= 0 && data ) {
 									data = string2xml(data);
@@ -881,8 +892,9 @@ var Require = (function() {
 
 		// class Require, singleton
 		function Require() {}
-
+		
 		Require.prototype = {
+			resolve: eval_as_module,
 			bundles: function() {
 				return bundles;
 			},
@@ -983,6 +995,7 @@ var Require = (function() {
 	var require = function(src, cache) {
 		return Require.sync(src, cache);
 	};
+	require.resolve = Require.resolve;
 
 	window.require = require;
 	window.define = Require.define;
