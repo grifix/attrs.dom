@@ -42,6 +42,7 @@ var StyleSession = (function() {
 						var key = keyvalue[0];
 						var value = keyvalue[1];
 						if( typeof(value) === 'string') value = value.trim();
+						
 						this.set(key.trim(), value);
 					}
 				}
@@ -100,7 +101,7 @@ var StyleSession = (function() {
 			var calibrated = calibrator.values(o);
 			var merged = calibrated.merged;
 			var buffer = this.buffer;
-
+			
 			if( merged ) {
 				for(var key in merged) {
 					if( !merged.hasOwnProperty(key) ) continue;

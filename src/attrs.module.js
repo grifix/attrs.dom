@@ -3,7 +3,7 @@
  * 
  * @author: joje (https://github.com/joje6)
  * @version: 0.1.0
- * @date: 2014-07-13 1:25:54
+ * @date: 2014-07-17 15:25:11
 */
 
 (function() {
@@ -1019,7 +1019,7 @@ var Require = (function() {
 		var load = function(fn) {
 			var script = document.createElement("script");
 			script.charset = 'utf-8';
-			script.async = true;
+			script.async = false;
 			script.src = __require_jquery_url__;
 			
 			var done = false;
@@ -1043,13 +1043,16 @@ var Require = (function() {
 			head.appendChild(script);
 		};
 		
-		module.exports = {
+		console.log('$', $);
+		module.exports = $;
+		
+		/*module.exports = {
 			ready: function(fn) {
 				if( $ ) fn($);
 				else if( error ) console.error(error);
 				else load(fn);
 			}
-		};
+		};*/
 	});
 })();
 

@@ -3,7 +3,7 @@
  * 
  * @author: joje (https://github.com/joje6)
  * @version: 0.1.0
- * @date: 2014-07-13 5:10:24
+ * @date: 2014-07-18 22:34:0
 */
 
 /*!
@@ -11,7 +11,7 @@
  * 
  * @author: joje (https://github.com/joje6)
  * @version: 0.1.0
- * @date: 2014-07-13 1:25:54
+ * @date: 2014-07-17 15:25:11
 */
 
 (function() {
@@ -1027,7 +1027,7 @@ var Require = (function() {
 		var load = function(fn) {
 			var script = document.createElement("script");
 			script.charset = 'utf-8';
-			script.async = true;
+			script.async = false;
 			script.src = __require_jquery_url__;
 			
 			var done = false;
@@ -1051,13 +1051,16 @@ var Require = (function() {
 			head.appendChild(script);
 		};
 		
-		module.exports = {
+		console.log('$', $);
+		module.exports = $;
+		
+		/*module.exports = {
 			ready: function(fn) {
 				if( $ ) fn($);
 				else if( error ) console.error(error);
 				else load(fn);
 			}
-		};
+		};*/
 	});
 })();
 
@@ -2931,6 +2934,7 @@ var StyleSession = (function() {
 						var key = keyvalue[0];
 						var value = keyvalue[1];
 						if( typeof(value) === 'string') value = value.trim();
+						
 						this.set(key.trim(), value);
 					}
 				}
@@ -2989,7 +2993,7 @@ var StyleSession = (function() {
 			var calibrated = calibrator.values(o);
 			var merged = calibrated.merged;
 			var buffer = this.buffer;
-
+			
 			if( merged ) {
 				for(var key in merged) {
 					if( !merged.hasOwnProperty(key) ) continue;
@@ -3074,12 +3078,9 @@ if( false ) {
 
 
 var Animator = (function() {
-	"use strict"
+	"use strict";
 
-	// privates
-	function pixel(el, key, value) {
-	}
-	
+	// privates	
 	function toString(value, unit) {
 		if( typeof(value) !== 'number' ) return value;
 		return value + (unit || '');
@@ -3139,14 +3140,13 @@ var Animator = (function() {
 	}
 	
 	// class Animator
-	function Animator(el, options, scope, exit) {
-		if( !(el instanceof $) ) el = $(el);
-		this.el = el;
+	function Animator(el, options, scope) {
+		if( !$.util.isElement(el) ) throw new TypeError('el must be a element', el);
+		this.el = $(el);
 		if( scope ) this.scope(scope);
 		this._chain = [];
 		this.index = -1;
 		if( options ) this.chain(options);
-		this._exit = exit || this.scope();
 	}
 
 	Animator.DEFAULT_DURATION = 250;
@@ -3181,11 +3181,6 @@ var Animator = (function() {
 		length: function() {
 			return this._chain.length;
 		},
-		out: function(exit) {
-			if( !arguments.length ) return this._exit;
-			this._exit = exit;
-			return this;
-		},
 		reset: function(options) {
 			this.stop();
 			this.first();
@@ -3198,7 +3193,7 @@ var Animator = (function() {
 				return this;
 			}
 
-			if( typeof(before) !== 'function' ) return console.error('Animator:before function must be a function', before);
+			if( typeof(before) !== 'function' ) return console.error('Animator:before must be a function', before);
 			this._before = before;
 			return this;
 		},
@@ -3301,6 +3296,74 @@ var Animator = (function() {
 	return Animator;
 })();
 
+var AnimationGroup = (function() {
+	"use strict";
+	
+	// class AnimationGroup
+	/*function AnimationGroup(el, options, scope) {
+		var self = this;
+		el.each(function() {
+			self.push(new Animator(this, options, scope));
+		});
+	}
+	
+	var fn = AnimationGroup.prototype = new Array();
+	fn.merge = function(o) {
+		if( !o ) return this;
+		if( typeof(o.length) === 'number' ) {
+			for(var i=0; i < o.length; i++) {
+				if( !~this.indexOf(o[i]) ) this.push(o[i]);
+			}
+		} else {
+			if( !~this.indexOf(o) ) this.push(o);
+		}
+		return this;
+	};
+	
+	fn.each = function(fn) {
+		this.every(function(animator) {
+			return ( fn.call(animator) === false ) ? false : true;
+		});
+		return this;
+	};
+	
+	fn.out = fn.end = function(exit) {
+		if( !arguments.length ) return this._exit;
+		this._exit = exit;
+		return this;
+	};
+	
+	fn.chain = function(options) {
+		return this.each(function() {
+			this.chain(options);
+		});
+	};
+	fn.scope = function(scope) {
+		return this.each(function() {
+			this.scope(options);
+		});
+	};
+	fn.length = function() {
+	};
+	fn.reset = function(options) {
+	};
+	fn.before = function(before) {
+	};
+	fn.run = function(callback) {
+	};
+	fn.reverse = function(callback) {
+	};
+	fn.executeCurrent = function(callback) {
+	};
+	fn.first = function() {
+	};
+	fn.last = function() {
+	};
+	fn.next = function(callback) {
+	};
+	fn.prev = function(callback) {
+	};*/
+})();
 
 var Scroller = (function() {
 	var SCROLL_INPUT_ELEMENTS =  ['input','textarea', 'select'];
@@ -4174,13 +4237,30 @@ var $ = (function() {
 		else return (el.nodeType == 1 && el.tagName);
 	}
 	
-	function merge(o) {
+	function isHtml(html) {
+		return ((typeof(html) === 'string') && (html.match(/(<([^>]+)>)/ig) || ~html.indexOf('\n'))) ? true : false;
+	}
+	
+	function merge(o, index) {
+		var push = function(o, index) {
+			if( o === null || o === undefined || ~this.indexOf(o) ) return index;
+			
+			if( typeof(index) !== 'number' || index > this.length ) {
+				this.push(o);
+				return index;
+			}
+			
+			if( index < 0 ) index = 0;
+			this.splice(index, 0, o);
+			return index + 1;
+		};
+		
 		if( !isNode(o) && typeof(o.length) === 'number' ) {
 			for(var i=0; i < o.length; i++) {
-				if( !~this.indexOf(o[i]) ) this.push(o[i]);
+				index = push.call(this, o[i], index);
 			}
 		} else {
-			if( !~this.indexOf(o) ) this.push(o);
+			index = push.call(this, o, index);
 		}
 		return this;
 	}
@@ -4211,18 +4291,15 @@ var $ = (function() {
 		return arr;
 	}
 	
-	function isHtml(html) {
-		return ((typeof(html) === 'string') && (html.match(/(<([^>]+)>)/ig) || ~html.indexOf('\n'))) ? true : false;
-	}
-	
 	function evalHtml(html, includeall) {
 		var els = [];		
 		if( typeof(html) !== 'string' ) return els;
 		
+		var lower = html.trim().toLowerCase();
 		var el;
-		if( !html.toLowerCase().indexOf('<tr') ) el = document.createElement('tbody');
-		else if( !html.toLowerCase().indexOf('<tbody') || !html.toLowerCase().indexOf('<thead') || !html.toLowerCase().indexOf('<tfoot') ) el = document.createElement('table');
-		else if( !html.toLowerCase().indexOf('<td') ) el = document.createElement('tr');
+		if( !lower.indexOf('<tr') ) el = document.createElement('tbody');
+		else if( !lower.indexOf('<tbody') || !lower.indexOf('<thead') || !lower.indexOf('<tfoot') ) el = document.createElement('table');
+		else if( !lower.indexOf('<td') ) el = document.createElement('tr');
 		else el = document.createElement('div');
 
 		el.innerHTML = html;
@@ -4238,6 +4315,37 @@ var $ = (function() {
 		}
 
 		return els;
+	}
+	
+	function create(accessor, contents, force) {
+		if( !accessor || typeof(accessor) !== 'string' ) return console.error('invalid parameter', accessor);
+		
+		var el;
+		if( force === true || isHtml(accessor) ) {
+			el = $(evalHtml(accessor));
+			if( !el.length ) return null;
+			if( contents ) el.html(contents);
+			return array_return(el.array());
+		} else {
+			var o = assemble(accessor);
+			var tag = o.tag;
+			var classes = o.classes;
+			var id = o.id;
+			
+			if( !tag ) return console.error('invalid parameter', accessor);
+		
+			el = document.createElement(tag);
+			if( id ) el.id = id;
+			if( classes ) el.className = classes;
+		}
+		
+		if( typeof(contents) === 'function' ) contents = contents.call(el);
+		
+		if( typeof(contents) === 'string' ) el.innerHTML = contents;
+		else if( isElement(contents) ) el.appendChild(contents);
+		else if( contents instanceof $ ) contents.appendTo(el);
+		
+		return el;
 	}
 	
 	function accessor(el) {
@@ -4319,37 +4427,6 @@ var $ = (function() {
 		} 
 		
 		return false;
-	}
-	
-	function create(accessor, contents, force) {
-		if( !accessor || typeof(accessor) !== 'string' ) return console.error('invalid parameter', accessor);
-		
-		var el;
-		if( force === true || isHtml(accessor) ) {
-			el = evalHtml(accessor)[0];
-			if( !el ) return null;
-			if( html ) el.innerHTML = html;
-			return el;
-		} else {		
-			var o = assemble(accessor);
-			var tag = o.tag;
-			var classes = o.classes;
-			var id = o.id;
-			
-			if( !tag ) return console.error('invalid parameter', accessor);
-		
-			el = document.createElement(tag);
-			if( id ) el.id = id;
-			if( classes ) el.className = classes;
-		}
-		
-		if( typeof(contents) === 'function' ) contents = contents.call(el);
-		
-		if( typeof(contents) === 'string' ) el.innerHTML = contents;
-		else if( isElement(contents) ) el.appendChild(contents);
-		else if( contents instanceof $ ) contents.appendTo(el);
-		
-		return el;
 	}
 	
 	$.util = {
@@ -4593,7 +4670,7 @@ var $ = (function() {
 			});
 			return array_return(arr);
 		}
-				
+		
 		return this.each(function() {
 			this[attr] = resolve.call(this, arg[0]);
 		});
@@ -4881,8 +4958,8 @@ var $ = (function() {
 			var arr = [];
 			this.each(function() {
 				arr.push(this.className.trim().split(' '));
-			});			
-			return arr;
+			});
+			return array_return(arr);
 		}
 				
 		return this.each(function() {			
@@ -4919,7 +4996,7 @@ var $ = (function() {
 		return this.classes(s, true);
 	};
 		
-	fn.hasClass = function(s) {
+	fn.has = fn.hasClass = function(s) {
 		if( !s || typeof(s) !== 'string' ) return s;
 		s = s.split(' ');
 		
@@ -4971,7 +5048,12 @@ var $ = (function() {
 		return $(arr).owner(this);
 	};
 	
-	fn.all = fn.find = function(selector) {
+	fn.all = function(includeself) {
+		if( includeself === true ) return $(this).add($('*', this)).owner(this);
+		return $('*', this).owner(this);
+	};
+	
+	fn.find = function(selector) {
 		if( !arguments.length ) selector = '*';
 		return $(selector, this).owner(this);
 	};
@@ -5152,10 +5234,13 @@ var $ = (function() {
 		var arr = [];
 		this.each(function() {
 			for(var i=0, len=args.length; i < len; i++) {
-				var el = create.call(this, accessor);
-				this.appendChild(el);
-				$(el).data('arg', args[i]).save('#create');
-				arr.push(el);
+				var el = $(create.call(this, accessor));				
+				$(this).append(el);
+				el.data('arg', args[i]).save('#create');
+				
+				el.each(function() {
+					arr.push(this);
+				});
 			}
 		});
 		
@@ -5278,7 +5363,7 @@ var $ = (function() {
 			if( typeof(dest) === 'string' ) dest = $(dest);
 			if( dest instanceof $ ) dest = dest[dest.length - 1];
 			
-			dest.appendChild(this);
+			if( dest ) dest.appendChild(this);
 		});
 	};
 	
@@ -5865,67 +5950,86 @@ var $ = (function() {
 			});
 		};
 		
-		// MutationObserver setup for detect DOM node changes.
-		// if browser doesn't support DOM3 MutationObeserver, use MutationObeserver shim (https://github.com/megawac/MutationObserver.js)
-		$.ready(function() {
-			var observer = new MutationObserver(function(mutations){
-				mutations.forEach(function(mutation) {
-					//if( debug('mutation') ) console.error(mutation.target, mutation.type, mutation);
+		fn.observe = function(fn, options) {
+			if( typeof(fn) !== 'function' ) return console.error('illegal fn(function)', fn);
 			
-					if( mutation.type === 'childList' ) {
-						var target = mutation.target;
-						var tel = $(target);
-						var added = mutation.addedNodes;
-						var removed = mutation.removedNodes;				
-								
-						if( removed ) {
-							for(var i=0; i < removed.length; i++) {
-								var source = $(removed[i]);
-						
-								tel.fire('removed', {
-									removed: removed[i]
-								});
-						
-								source.fire('detached', {
-									from: target
-								});
-							}
-						}
+			return this.each(function() {
+				var observer;
+				if( fn === false ) {
+					observer = $(this).data('observer');
+					if( observer ) observer.disconnect();
+					return;					
+				}
 				
-						if( added ) {
-							for(var i=0; i < added.length; i++) {
-								var source = $(added[i]);
+				observer = observe(this, fn, options);
+				observers.push(observer);
+				$(this).data('observer', observer);
+			});
+		};
+		
+		$.ready(function() {
+			observe(document.body, function(e) {
+				if( e.type === 'childList' ) {
+					var target = e.target;
+					var added = e.addedNodes;
+					var removed = e.removedNodes;				
 							
-								tel.fire('added', {
-									added: added[i]
-								});
-						
-								source.fire('attached', {
-									to: target
-								});
-							}
+					if( removed ) {
+						for(var i=0; i < removed.length; i++) {
+							$(removed[i]).fire('unstaged', {
+								from: target
+							});
 						}
 					}
-				}); 
-		    });
-
-			observer.observe(document.body, {
+			
+					if( added ) {
+						for(var i=0; i < added.length; i++) {
+							$(added[i]).fire('staged', {
+								to: target
+							});
+						}
+					}
+				}
+			}, {
 				subtree: true,
 			    childList: true,
 			    attributes: true,
 			    characterData: true
 			});
 		});
+		
+		var observers = [];
+		var observe = function(target, fn, options) {
+			if( !$.util.isElement(target) ) return console.error('illegal target(element)', target);
+			if( typeof(fn) !== 'function' ) return console.error('illegal fn(function)', fn);
+			
+			// MutationObserver setup for detect DOM node changes.
+			// if browser doesn't support DOM3 MutationObeserver, use MutationObeserver shim (https://github.com/megawac/MutationObserver.js)
+			var observer = new MutationObserver(function(mutations){
+				mutations.forEach(function(mutation) {
+					//if( debug('mutation') ) console.error(mutation.target, mutation.type, mutation);
+					fn.call(target, mutation);
+				});
+		    });
+
+			observer.observe(target, options || {
+			    childList: true,
+			    attributes: true,
+				attributeOldValue: true,
+			    characterData: true
+			});			
+			return observer;
+		};
 	}
 
 	// animation
 	if( eval('typeof(Animator) !== "undefined"') ) {
 		fn.animate = function(options, callback) {
-			return new Animator(this, options, this, this).run(callback).out();
+			return new AnimationGroup(this, options, this, this).run(callback).out();
 		};
 
 		fn.animator = function(options, scope) {
-			return new Animator(this, options, scope || this, this);
+			return new AnimationGroup(this, options, scope || this, this);
 		};
 	}
 

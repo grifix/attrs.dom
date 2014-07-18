@@ -15,7 +15,11 @@
 			var $ = $ || require('attrs.dom');
 			
 			$.ready(function(e) {
-				console.log('DOM Ready!');
+				console.log('DOM Ready!', document.body);
+								
+				console.log($('div'));
+				console.log($('div').all());
+				console.log($('div').all(true));
 				
 				if( false ) {
 					console.log('$.device', $.device);
@@ -25,6 +29,19 @@
 					console.log('$.StyleSession', $.StyleSession);
 					console.log('$.Template', $.Template);
 					console.log('$.EventDispatcher', $.EventDispatcher);
+					
+					var arr = $('div');
+					arr.add($.create('p', 5), 0);
+					console.log(arr);
+					
+					$.create('div.wrapper').appendTo(document.body).create('div.item').html('test').on('*', function(e) {
+						console.log(e.type, e);
+					}).detach();
+					
+					
+					// create tr	
+					console.log($('<tr><td>test</td><td>test</td></tr><tr><td>test</td><td>test</td></tr>'));
+					console.log($.create('<tr><td>test</td><td>test</td></tr><tr><td>test</td><td>test</td></tr>'));
 					
 					var el = $('#content');
 					console.log('el', el);

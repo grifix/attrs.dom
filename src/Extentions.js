@@ -129,67 +129,86 @@
 			});
 		};
 		
-		// MutationObserver setup for detect DOM node changes.
-		// if browser doesn't support DOM3 MutationObeserver, use MutationObeserver shim (https://github.com/megawac/MutationObserver.js)
-		$.ready(function() {
-			var observer = new MutationObserver(function(mutations){
-				mutations.forEach(function(mutation) {
-					//if( debug('mutation') ) console.error(mutation.target, mutation.type, mutation);
+		fn.observe = function(fn, options) {
+			if( typeof(fn) !== 'function' ) return console.error('illegal fn(function)', fn);
 			
-					if( mutation.type === 'childList' ) {
-						var target = mutation.target;
-						var tel = $(target);
-						var added = mutation.addedNodes;
-						var removed = mutation.removedNodes;				
-								
-						if( removed ) {
-							for(var i=0; i < removed.length; i++) {
-								var source = $(removed[i]);
-						
-								tel.fire('removed', {
-									removed: removed[i]
-								});
-						
-								source.fire('detached', {
-									from: target
-								});
-							}
-						}
+			return this.each(function() {
+				var observer;
+				if( fn === false ) {
+					observer = $(this).data('observer');
+					if( observer ) observer.disconnect();
+					return;					
+				}
 				
-						if( added ) {
-							for(var i=0; i < added.length; i++) {
-								var source = $(added[i]);
+				observer = observe(this, fn, options);
+				observers.push(observer);
+				$(this).data('observer', observer);
+			});
+		};
+		
+		$.ready(function() {
+			observe(document.body, function(e) {
+				if( e.type === 'childList' ) {
+					var target = e.target;
+					var added = e.addedNodes;
+					var removed = e.removedNodes;				
 							
-								tel.fire('added', {
-									added: added[i]
-								});
-						
-								source.fire('attached', {
-									to: target
-								});
-							}
+					if( removed ) {
+						for(var i=0; i < removed.length; i++) {
+							$(removed[i]).fire('unstaged', {
+								from: target
+							});
 						}
 					}
-				}); 
-		    });
-
-			observer.observe(document.body, {
+			
+					if( added ) {
+						for(var i=0; i < added.length; i++) {
+							$(added[i]).fire('staged', {
+								to: target
+							});
+						}
+					}
+				}
+			}, {
 				subtree: true,
 			    childList: true,
 			    attributes: true,
 			    characterData: true
 			});
 		});
+		
+		var observers = [];
+		var observe = function(target, fn, options) {
+			if( !$.util.isElement(target) ) return console.error('illegal target(element)', target);
+			if( typeof(fn) !== 'function' ) return console.error('illegal fn(function)', fn);
+			
+			// MutationObserver setup for detect DOM node changes.
+			// if browser doesn't support DOM3 MutationObeserver, use MutationObeserver shim (https://github.com/megawac/MutationObserver.js)
+			var observer = new MutationObserver(function(mutations){
+				mutations.forEach(function(mutation) {
+					//if( debug('mutation') ) console.error(mutation.target, mutation.type, mutation);
+					fn.call(target, mutation);
+				});
+		    });
+
+			observer.observe(target, options || {
+			    childList: true,
+			    attributes: true,
+				attributeOldValue: true,
+			    characterData: true
+			});			
+			return observer;
+		};
 	}
 
 	// animation
 	if( eval('typeof(Animator) !== "undefined"') ) {
 		fn.animate = function(options, callback) {
-			return new Animator(this, options, this, this).run(callback).out();
+			return new AnimationGroup(this, options, this, this).run(callback).out();
 		};
 
 		fn.animator = function(options, scope) {
-			return new Animator(this, options, scope || this, this);
+			return new AnimationGroup(this, options, scope || this, this);
 		};
 	}
 

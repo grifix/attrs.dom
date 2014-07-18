@@ -114,13 +114,30 @@ var $ = (function() {
 		else return (el.nodeType == 1 && el.tagName);
 	}
 	
-	function merge(o) {
+	function isHtml(html) {
+		return ((typeof(html) === 'string') && (html.match(/(<([^>]+)>)/ig) || ~html.indexOf('\n'))) ? true : false;
+	}
+	
+	function merge(o, index) {
+		var push = function(o, index) {
+			if( o === null || o === undefined || ~this.indexOf(o) ) return index;
+			
+			if( typeof(index) !== 'number' || index > this.length ) {
+				this.push(o);
+				return index;
+			}
+			
+			if( index < 0 ) index = 0;
+			this.splice(index, 0, o);
+			return index + 1;
+		};
+		
 		if( !isNode(o) && typeof(o.length) === 'number' ) {
 			for(var i=0; i < o.length; i++) {
-				if( !~this.indexOf(o[i]) ) this.push(o[i]);
+				index = push.call(this, o[i], index);
 			}
 		} else {
-			if( !~this.indexOf(o) ) this.push(o);
+			index = push.call(this, o, index);
 		}
 		return this;
 	}
@@ -151,18 +168,15 @@ var $ = (function() {
 		return arr;
 	}
 	
-	function isHtml(html) {
-		return ((typeof(html) === 'string') && (html.match(/(<([^>]+)>)/ig) || ~html.indexOf('\n'))) ? true : false;
-	}
-	
 	function evalHtml(html, includeall) {
 		var els = [];		
 		if( typeof(html) !== 'string' ) return els;
 		
+		var lower = html.trim().toLowerCase();
 		var el;
-		if( !html.toLowerCase().indexOf('<tr') ) el = document.createElement('tbody');
-		else if( !html.toLowerCase().indexOf('<tbody') || !html.toLowerCase().indexOf('<thead') || !html.toLowerCase().indexOf('<tfoot') ) el = document.createElement('table');
-		else if( !html.toLowerCase().indexOf('<td') ) el = document.createElement('tr');
+		if( !lower.indexOf('<tr') ) el = document.createElement('tbody');
+		else if( !lower.indexOf('<tbody') || !lower.indexOf('<thead') || !lower.indexOf('<tfoot') ) el = document.createElement('table');
+		else if( !lower.indexOf('<td') ) el = document.createElement('tr');
 		else el = document.createElement('div');
 
 		el.innerHTML = html;
@@ -178,6 +192,37 @@ var $ = (function() {
 		}
 
 		return els;
+	}
+	
+	function create(accessor, contents, force) {
+		if( !accessor || typeof(accessor) !== 'string' ) return console.error('invalid parameter', accessor);
+		
+		var el;
+		if( force === true || isHtml(accessor) ) {
+			el = $(evalHtml(accessor));
+			if( !el.length ) return null;
+			if( contents ) el.html(contents);
+			return array_return(el.array());
+		} else {
+			var o = assemble(accessor);
+			var tag = o.tag;
+			var classes = o.classes;
+			var id = o.id;
+			
+			if( !tag ) return console.error('invalid parameter', accessor);
+		
+			el = document.createElement(tag);
+			if( id ) el.id = id;
+			if( classes ) el.className = classes;
+		}
+		
+		if( typeof(contents) === 'function' ) contents = contents.call(el);
+		
+		if( typeof(contents) === 'string' ) el.innerHTML = contents;
+		else if( isElement(contents) ) el.appendChild(contents);
+		else if( contents instanceof $ ) contents.appendTo(el);
+		
+		return el;
 	}
 	
 	function accessor(el) {
@@ -259,37 +304,6 @@ var $ = (function() {
 		} 
 		
 		return false;
-	}
-	
-	function create(accessor, contents, force) {
-		if( !accessor || typeof(accessor) !== 'string' ) return console.error('invalid parameter', accessor);
-		
-		var el;
-		if( force === true || isHtml(accessor) ) {
-			el = evalHtml(accessor)[0];
-			if( !el ) return null;
-			if( html ) el.innerHTML = html;
-			return el;
-		} else {		
-			var o = assemble(accessor);
-			var tag = o.tag;
-			var classes = o.classes;
-			var id = o.id;
-			
-			if( !tag ) return console.error('invalid parameter', accessor);
-		
-			el = document.createElement(tag);
-			if( id ) el.id = id;
-			if( classes ) el.className = classes;
-		}
-		
-		if( typeof(contents) === 'function' ) contents = contents.call(el);
-		
-		if( typeof(contents) === 'string' ) el.innerHTML = contents;
-		else if( isElement(contents) ) el.appendChild(contents);
-		else if( contents instanceof $ ) contents.appendTo(el);
-		
-		return el;
 	}
 	
 	$.util = {
@@ -533,7 +547,7 @@ var $ = (function() {
 			});
 			return array_return(arr);
 		}
-				
+		
 		return this.each(function() {
 			this[attr] = resolve.call(this, arg[0]);
 		});
@@ -821,8 +835,8 @@ var $ = (function() {
 			var arr = [];
 			this.each(function() {
 				arr.push(this.className.trim().split(' '));
-			});			
-			return arr;
+			});
+			return array_return(arr);
 		}
 				
 		return this.each(function() {			
@@ -859,7 +873,7 @@ var $ = (function() {
 		return this.classes(s, true);
 	};
 		
-	fn.hasClass = function(s) {
+	fn.has = fn.hasClass = function(s) {
 		if( !s || typeof(s) !== 'string' ) return s;
 		s = s.split(' ');
 		
@@ -911,7 +925,12 @@ var $ = (function() {
 		return $(arr).owner(this);
 	};
 	
-	fn.all = fn.find = function(selector) {
+	fn.all = function(includeself) {
+		if( includeself === true ) return $(this).add($('*', this)).owner(this);
+		return $('*', this).owner(this);
+	};
+	
+	fn.find = function(selector) {
 		if( !arguments.length ) selector = '*';
 		return $(selector, this).owner(this);
 	};
@@ -1092,10 +1111,13 @@ var $ = (function() {
 		var arr = [];
 		this.each(function() {
 			for(var i=0, len=args.length; i < len; i++) {
-				var el = create.call(this, accessor);
-				this.appendChild(el);
-				$(el).data('arg', args[i]).save('#create');
-				arr.push(el);
+				var el = $(create.call(this, accessor));				
+				$(this).append(el);
+				el.data('arg', args[i]).save('#create');
+				
+				el.each(function() {
+					arr.push(this);
+				});
 			}
 		});
 		
@@ -1218,7 +1240,7 @@ var $ = (function() {
 			if( typeof(dest) === 'string' ) dest = $(dest);
 			if( dest instanceof $ ) dest = dest[dest.length - 1];
 			
-			dest.appendChild(this);
+			if( dest ) dest.appendChild(this);
 		});
 	};
 	

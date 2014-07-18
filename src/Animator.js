@@ -1,10 +1,7 @@
 var Animator = (function() {
-	"use strict"
+	"use strict";
 
-	// privates
-	function pixel(el, key, value) {
-	}
-	
+	// privates	
 	function toString(value, unit) {
 		if( typeof(value) !== 'number' ) return value;
 		return value + (unit || '');
@@ -64,14 +61,13 @@ var Animator = (function() {
 	}
 	
 	// class Animator
-	function Animator(el, options, scope, exit) {
-		if( !(el instanceof $) ) el = $(el);
-		this.el = el;
+	function Animator(el, options, scope) {
+		if( !$.util.isElement(el) ) throw new TypeError('el must be a element', el);
+		this.el = $(el);
 		if( scope ) this.scope(scope);
 		this._chain = [];
 		this.index = -1;
 		if( options ) this.chain(options);
-		this._exit = exit || this.scope();
 	}
 
 	Animator.DEFAULT_DURATION = 250;
@@ -106,11 +102,6 @@ var Animator = (function() {
 		length: function() {
 			return this._chain.length;
 		},
-		out: function(exit) {
-			if( !arguments.length ) return this._exit;
-			this._exit = exit;
-			return this;
-		},
 		reset: function(options) {
 			this.stop();
 			this.first();
@@ -123,7 +114,7 @@ var Animator = (function() {
 				return this;
 			}
 
-			if( typeof(before) !== 'function' ) return console.error('Animator:before function must be a function', before);
+			if( typeof(before) !== 'function' ) return console.error('Animator:before must be a function', before);
 			this._before = before;
 			return this;
 		},
@@ -224,4 +215,73 @@ var Animator = (function() {
 	};
 
 	return Animator;
+})();
+
+var AnimationGroup = (function() {
+	"use strict";
+	
+	// class AnimationGroup
+	/*function AnimationGroup(el, options, scope) {
+		var self = this;
+		el.each(function() {
+			self.push(new Animator(this, options, scope));
+		});
+	}
+	
+	var fn = AnimationGroup.prototype = new Array();
+	fn.merge = function(o) {
+		if( !o ) return this;
+		if( typeof(o.length) === 'number' ) {
+			for(var i=0; i < o.length; i++) {
+				if( !~this.indexOf(o[i]) ) this.push(o[i]);
+			}
+		} else {
+			if( !~this.indexOf(o) ) this.push(o);
+		}
+		return this;
+	};
+	
+	fn.each = function(fn) {
+		this.every(function(animator) {
+			return ( fn.call(animator) === false ) ? false : true;
+		});
+		return this;
+	};
+	
+	fn.out = fn.end = function(exit) {
+		if( !arguments.length ) return this._exit;
+		this._exit = exit;
+		return this;
+	};
+	
+	fn.chain = function(options) {
+		return this.each(function() {
+			this.chain(options);
+		});
+	};
+	fn.scope = function(scope) {
+		return this.each(function() {
+			this.scope(options);
+		});
+	};
+	fn.length = function() {
+	};
+	fn.reset = function(options) {
+	};
+	fn.before = function(before) {
+	};
+	fn.run = function(callback) {
+	};
+	fn.reverse = function(callback) {
+	};
+	fn.executeCurrent = function(callback) {
+	};
+	fn.first = function() {
+	};
+	fn.last = function() {
+	};
+	fn.next = function(callback) {
+	};
+	fn.prev = function(callback) {
+	};*/
 })();
