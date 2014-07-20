@@ -17,9 +17,7 @@
 			$.ready(function(e) {
 				console.log('DOM Ready!', document.body);
 								
-				console.log($('div'));
-				console.log($('div').all());
-				console.log($('div').all(true));
+				console.log($.create('<icon icon="list-unordered"></icon>샘플 페이지<i>Sample Page</i><label>New</label>'));
 				
 				if( false ) {
 					console.log('$.device', $.device);
@@ -29,6 +27,10 @@
 					console.log('$.StyleSession', $.StyleSession);
 					console.log('$.Template', $.Template);
 					console.log('$.EventDispatcher', $.EventDispatcher);
+					
+					console.log($('div'));
+					console.log($('div').all());
+					console.log($('div').all(true));
 					
 					var arr = $('div');
 					arr.add($.create('p', 5), 0);

@@ -180,6 +180,7 @@ var $ = (function() {
 		else el = document.createElement('div');
 
 		el.innerHTML = html;
+		
 		var children = (includeall) ? el.childNodes : el.children;
 		if( children ) {
 			for(var i=0; i < children.length; i++) {
@@ -199,7 +200,7 @@ var $ = (function() {
 		
 		var el;
 		if( force === true || isHtml(accessor) ) {
-			el = $(evalHtml(accessor));
+			el = $(evalHtml(accessor, true));
 			if( !el.length ) return null;
 			if( contents ) el.html(contents);
 			return array_return(el.array());
@@ -336,7 +337,7 @@ var $ = (function() {
 	
 	prototype.refresh = function(selector, criteria, single) {
 		//if( arguments.length && !selector ) return console.error('invalid selector', selector);
-		if( isHtml(selector) ) selector = evalHtml(selector);
+		if( isHtml(selector) ) selector = evalHtml(selector, true);
 		this.clear();
 		this.selector = selector = selector || [];
 		if( criteria ) this.criteria = criteria;
@@ -1127,6 +1128,7 @@ var $ = (function() {
 	fn.save = function(name) {
 		return this.each(function() {
 			var attrs = this.attributes;
+			if( !attrs ) return;
 			var o = {};
 			for(var i= attrs.length-1; i>=0; i--) {
 				o[attrs[i].name] = attrs[i].value;
