@@ -81,7 +81,7 @@ var $ = (function() {
 		return $.on('DOMContentLoaded', fn);
 	};
 	
-	$.create = function() {
+	$.create = $.c = function() {
 		var tmp = $(document.createElement('div'));
 		var items = tmp.create.apply(tmp, arguments).owner(null);
 		tmp = null;
@@ -556,46 +556,25 @@ var $ = (function() {
 	
 	// function template for element attributes handling
 	function type2(arg) {
-		if( !arg.length ) {
-			var arr = [];
-			this.each(function() {
-				var attrs = this.attributes;
-				var o = {}; 
-				for(var i= attrs.length-1; i>=0; i--) {
-					o[attrs[i].name] = attrs[i].value;
-				}
-
-				arr.push(o);
-			});			
-			return array_return(arr);
-		}
-		
 		var key = arg[0];
 		var value = arg[1];
-		
-		if( typeof(key) === 'object' ) {
-			for(var k in key) {
-				if( key.hasOwnProperty(k) ) this.attr(k, key[k]);
-			}
-			return this;
-		} else if( !key ) {
-			return this;
-		}
 		
 		if( typeof(key) !== 'string' ) return console.error('invalid key', key);
 			
 		if( arg.length === 1 ) {
 			var arr = [];
 			this.each(function() {
-				arr.push(this.getAttribute(key));
+				if( isElement(this) ) arr.push(this.getAttribute(key));
+				else arr.push(null);
 			});
 			return array_return(arr);
 		}
 		
 		return this.each(function() {
+			if( !isElement(this) ) return;
 			var v = resolve.call(this, value);
-			if( v === false ) this.removeAttribute(key);
-			else this.setAttribute(key, v || '');
+			if( v === null || v === undefined ) this.removeAttribute(key);
+			else this.setAttribute(key, (v + ''));
 		});
 	}
 	
@@ -744,6 +723,27 @@ var $ = (function() {
 	
 	fn.attr = function() {
 		return type2.call(this, arguments);
+	};
+	
+	fn.attrs = function(attrs) {
+		if( !arguments.length ) {
+			var arr = [];
+			this.each(function() {
+				var attrs = this.attributes;
+				if( !attrs ) return arr.push([]);
+				var o = {}; 
+				for(var i= attrs.length-1; i>=0; i--) {
+					o[attrs[i].name] = attrs[i].value;
+				}
+
+				arr.push(o);
+			});			
+			return array_return(arr);
+		}
+		
+		if( typeof(attrs) !== 'object' ) return console.error('attrs must be an object', attrs);
+		for(var k in attrs) this.attr(k, attrs[k]);
+		return this;
 	};
 	
 	// contents handling
@@ -1093,7 +1093,7 @@ var $ = (function() {
 		return $(arr).owner(this);
 	};
 	
-	fn.create = function(accessor, args, fn) {
+	fn.create = fn.c = function(accessor, args, fn) {
 		if( typeof(accessor) !== 'string' ) return console.error('invalid accessor', accessor);
 		
 		if( arguments.length === 2 && typeof(args) === 'function' ) {

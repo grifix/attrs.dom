@@ -14,6 +14,9 @@
 		//<![CDATA[
 			var $ = $ || require('attrs.dom');
 			
+			var el = $.create('div').attr('key', 'value');
+			console.log(el.get(0), el.attrs({a:1,b:2,c:true,d:false,key:''}));
+			
 			$.ready(function(e) {
 				console.log('DOM Ready!', document.body);
 								
