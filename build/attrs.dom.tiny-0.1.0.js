@@ -3,7 +3,7 @@
  * 
  * @author: joje (https://github.com/joje6)
  * @version: 0.1.0
- * @date: 2014-07-24 1:12:20
+ * @date: 2014-07-31 2:6:30
 */
 
 (function() {
@@ -1207,9 +1207,7 @@ var $ = (function() {
 	};
 	
 	$.html = function(text) {
-		var el = document.createElement('div');
-		el.innerHTML = text;
-		return $(el).contents().owner(null);
+		return $.create('div').html(text).contents().owner(null);
 	};
 	
 	$.text = function(text) {
@@ -1234,6 +1232,11 @@ var $ = (function() {
 	
 	function isHtml(html) {
 		return ((typeof(html) === 'string') && (html.match(/(<([^>]+)>)/ig) || ~html.indexOf('\n'))) ? true : false;
+	}
+	
+	function isArrayType(o) {
+		if( !o ) return false;
+		return (o instanceof $ || Array.isArray(o) || o instanceof NodeList || o instanceof HTMLCollection || (typeof(o.length) === 'number' && typeof(o.forEach) === 'function') || toString.call(o) === '[object Array]') ? true : false;
 	}
 	
 	function merge(o, index) {
@@ -1432,6 +1435,7 @@ var $ = (function() {
 		match: match,
 		isElement: isElement,
 		isHtml: isHtml,
+		isArrayType: isArrayType,
 		evalHtml: evalHtml,
 		create: create,
 		accessor: accessor,
@@ -1604,8 +1608,11 @@ var $ = (function() {
 	var data = $.util.data;
 	var create = $.util.create;
 	var isElement = $.util.isElement;
+	var isNode = $.util.isNode;
 	var evalHtml = $.util.evalHtml;
 	var match = $.util.match;
+	var isArrayType = $.util.isArrayType;
+	var isHtml = $.util.isHtml;
 	
 	function stringify(el) {
 		if( el.outerHTML ) {
@@ -1870,7 +1877,25 @@ var $ = (function() {
 	};
 	
 	fn.html = function(value) {
-		return type1.call(this, 'innerHTML', arguments);
+		if( !arguments.length ) {
+			var arr = [];
+			this.each(function() {
+				arr.push(this.innerHTML);
+			});
+			return array_return(arr);
+		}
+		
+		if( !isArrayType(value) ) value = [value];
+		return this.each(function() {
+			this.innerHTML = '';
+			for(var i=0; i < value.length;i++) {
+				var v = resolve.call(this, value[i]);
+				if( !v ) continue;
+				else if( isNode(v) ) this.appendChild(v);
+				else if( isHtml(v) ) $(this).append($.create(v));
+				else this.appendChild(document.createTextNode(v + ''));
+			}
+		});
 	};
 	
 	fn.outer = function(value) {

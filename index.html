@@ -14,13 +14,18 @@
 		//<![CDATA[
 			var $ = $ || require('attrs.dom');
 			
-			var el = $.create('div').attr('key', 'value');
-			console.log(el.get(0), el.attrs({a:1,b:2,c:true,d:false,key:''}));
+			
 			
 			$.ready(function(e) {
 				console.log('DOM Ready!', document.body);
-								
-				console.log($.create('<icon icon="list-unordered"></icon>샘플 페이지<i>Sample Page</i><label>New</label>'));
+				
+				console.log($.create('div', [1,2,3,4,5]).html(function(d) {
+					return '<p>' + d + '</p>';
+				})[0]);
+				
+				console.log($.create('div', [1,2,3,4,5]).html(function(d) {
+					return 'a-' + d;
+				})[0]);
 				
 				if( false ) {
 					console.log('$.device', $.device);
@@ -34,6 +39,13 @@
 					console.log($('div'));
 					console.log($('div').all());
 					console.log($('div').all(true));
+					
+
+				
+					var el = $.create('div').attr('key', 'value');
+					console.log(el.get(0), el.attrs({a:1,b:2,c:true,d:false,key:''}));
+								
+					console.log($.create('<icon icon="list-unordered"></icon>샘플 페이지<i>Sample Page</i><label>New</label>'));
 					
 					var arr = $('div');
 					arr.add($.create('p', 5), 0);
