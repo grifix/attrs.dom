@@ -3,7 +3,7 @@
  * 
  * @author: joje (https://github.com/joje6)
  * @version: 0.1.0
- * @date: 2014-07-17 15:25:11
+ * @date: 2014-08-01 5:55:19
 */
 
 (function() {
@@ -435,7 +435,7 @@ var Ajax = (function() {
 			var config = {
 				method: 'get',
 				sync: false,
-				cache: false,
+				cache: true,
 				parse: true
 			};
 
