@@ -1,18 +1,19 @@
 <script type="text/javascript">
-	(function() {		
-		console.log('document', document);
-		console.log('document.currentScript', document.currentScript);
-		console.log('document.currentScript.ownerDocument', document.currentScript.ownerDocument);
-		console.log('document.currentScript.ownerDocument.documentElement', document.currentScript.ownerDocument.documentElement);
-		console.log('doc.querySelectorAll("div")', document.currentScript.ownerDocument.querySelectorAll('div'));
-		//console.log('document.currentScript.ownerDocument instanceof HTMLDocument', (document.currentScript.ownerDocument instanceof HTMLDocument));
-		
-		var $ = require('attrs.dom').branch(document.currentScript.ownerDocument);
-		
-		console.log('branched $', $());
-		console.log('$(doc).find("div")', $('div'));
-		$('div').css('border', '1px dotted silver');
-	})();
+	console.log('document', document);
+	console.log('document.currentScript', document.currentScript);
+	console.log('document.currentScript.ownerDocument', document.currentScript.ownerDocument);
+	console.log('document.currentScript.ownerDocument.documentElement', document.currentScript.ownerDocument.documentElement);
+	console.log('doc.querySelectorAll("div")', document.currentScript.ownerDocument.querySelectorAll('div'));
+	//console.log('document.currentScript.ownerDocument instanceof HTMLDocument', (document.currentScript.ownerDocument instanceof HTMLDocument));
+	
+	var $ = require('attrs.dom').branch(document.currentScript.ownerDocument);
+	
+	console.log('branched $', $());
+	console.log('$(doc).find("div")', $('div'));
+	$('div').css('border', '1px dotted silver');
+	
+	var a = 1;
+	window.b = 2;
 </script>
 <script type="text/javascript" src=""></script>
 

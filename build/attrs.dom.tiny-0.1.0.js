@@ -3,8 +3,14 @@
  * 
  * @author: joje (https://github.com/joje6)
  * @version: 0.1.0
- * @date: 2014-08-12 12:57:59
+ * @date: 2014-08-12 13:28:57
 */
+
+window.__evalscript__ = function(script) {
+	with({}) {
+		return eval(script);
+	}
+};
 
 (function() {
 	

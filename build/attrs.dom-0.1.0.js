@@ -3,7 +3,7 @@
  * 
  * @author: joje (https://github.com/joje6)
  * @version: 0.1.0
- * @date: 2014-08-12 12:57:59
+ * @date: 2014-08-12 13:28:57
 */
 
 /*!
@@ -1106,6 +1106,12 @@ head.insertBefore(script, head.firstChild);
 	
 })();
 
+
+window.__evalscript__ = function(script) {
+	with({}) {
+		return eval(script);
+	}
+};
 
 (function() {
 	
@@ -6356,7 +6362,7 @@ var Importer = (function() {
 				//result = require(src);
 			} else if( text ) {
 				//console.log('script', text);
-				window.eval(text);
+				window.__evalscript__(text);
 			}
 		
 			if( Object.defineProperty ) {
@@ -6416,6 +6422,8 @@ var Importer = (function() {
 })();
 
 SelectorBuilder.fn['import'] = function(options, async, callback) {
+	"use strict";
+	
 	var $ = this.$;
 	var document = this.document;
 	

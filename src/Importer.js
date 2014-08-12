@@ -202,7 +202,7 @@ var Importer = (function() {
 				//result = require(src);
 			} else if( text ) {
 				//console.log('script', text);
-				window.eval(text);
+				window.__evalscript__(text);
 			}
 		
 			if( Object.defineProperty ) {
@@ -262,6 +262,8 @@ var Importer = (function() {
 })();
 
 SelectorBuilder.fn['import'] = function(options, async, callback) {
+	"use strict";
+	
 	var $ = this.$;
 	var document = this.document;
 	
