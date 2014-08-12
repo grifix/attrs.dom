@@ -12,20 +12,11 @@
 	this is template
 </template>
 
-<div class="panel">
+<div class="panel1">
 	<div class="contents">
 		Contents
 	</div>
 </div>
-
-<div class="panel">
-	<h3>Title</h3>
-	<div class="contents">
-		<img src="keroro.jpg" />
-	</div>
-</div>
-
-text
 
 <script type="text/javascript">
 	(function() {
@@ -41,7 +32,7 @@ text
 		console.log('doc.querySelectorAll("template")', doc.querySelectorAll('template'));
 		
 		doc.addEventListener('DOMContentLoaded', function(e) {
-			console.debug('!!!!DOMContentLoaded');	
+			console.debug('DOMContentLoaded called');	
 		});
 		
 		$.ready(function(e) {
@@ -68,3 +59,13 @@ text
 	var a = 1;
 	window.b = 2;
 </script>
+
+<div class="panel2">
+	<h3>Title</h3>
+	<div class="contents">
+		<img src="keroro.jpg" />
+	</div>
+</div>
+
+text
+

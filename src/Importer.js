@@ -259,14 +259,14 @@ var Importer = (function() {
 		var noscript = options.noscript;
 		var base = options.base;
 				
-		/*if( window.DOMParser ) {
+		if( !Device.is('webkit') && window.DOMParser ) {
 			var parser = new DOMParser();
-			doc = parser.parseFromString(initial, type || "text/html");
-			//WARN: DOMParser 로 초기화된 document 는 webkit 에서 dispatchEvent 가 먹히지 않는다. chrome X, ff O
-		}*/
+			doc = parser.parseFromString(contents, "text/html");
+			//WARN: DOMParser 로 초기화된 document 는 webkit 에서 dispatchEvent 가 먹히지 않는다. chrome/safari X, ff O
+		}
 		
 		if( !doc && document.implementation && document.implementation.createHTMLDocument ) {
-			doc = document.implementation.createHTMLDocument('');
+			doc = document.implementation.createHTMLDocument('noname');
 			doc.open();
 			doc.write(contents);
 			doc.close();
@@ -315,8 +315,10 @@ var Importer = (function() {
 							if( href && !href.startsWith('#') ) sub.setAttribute('href', Path.join(base, href));
 						});
 					}
-				
-					if( tag === 'script' ) {
+					
+					if( tag === 'template' ) {
+						el.style.display = 'none';
+					} else if( tag === 'script' ) {
 						resolveScript(doc, el);
 					} else if( tag === 'style' ) {
 						document.head.appendChild(el.cloneNode(true));
@@ -333,7 +335,7 @@ var Importer = (function() {
 			
 			fill(headflag, doc.head);
 			fill(bodyflag, doc.body);
-			
+						
 	       	var event = doc.createEvent('Event');
 			event.initEvent('DOMContentLoaded', true, true);
 			doc.dispatchEvent(event);

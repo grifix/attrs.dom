@@ -27,8 +27,6 @@
 				console.log('imported document', doc);
 			}
 			
-			console.log('root $', $.prototype);
-			
 			$.ready(function(e) {
 				$('div').css('border', '1px dotted orange');
 				$('#slot').import('partials/partial.html', function(err, doc) {
@@ -36,8 +34,14 @@
 					console.log('imported', doc);
 				});
 				
-				console.log(window.a);
-				console.log(window.b);
+				console.log('window.a', window.a);
+				console.log('window.b', window.b);
+				
+				$('#slot').on('custom.test', function(e) {
+					console.log('custom event fired', e, e.detail);
+				});
+			
+				$('#slot').fire('custom.test', {key:'value'});
 			});
 		</script>
 	</head>

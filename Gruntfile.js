@@ -1,9 +1,11 @@
 var files = [
+	'./src/polyfill/EventListener.oldie.js',
+	'./src/polyfill/EventListener.js',	
 	'./src/attrs.module.js',
 	'./src/BOF.js',
 	'./src/DateUtil.js',
 	'./src/Template.js',
-	'./src/EventDispatcher.js', 
+	//'./src/EventDispatcher.js', 
 	'./src/CSS3Calibrator.js',
 	'./src/Device.js',
 	'./src/StyleSession.js',
@@ -80,12 +82,12 @@ module.exports = function(grunt) {
 			basic_and_extras: {
 		      files: {
 		        'build/attrs.dom.js': files,
-		        'build/attrs.dom.light.js': files_light,
-				'build/attrs.dom.tiny.js': files_tiny,
+		        //'build/attrs.dom.light.js': files_light,
+				//'build/attrs.dom.tiny.js': files_tiny,
 				
 		        'build/attrs.dom-<%= pkg.version %>.js': files,
-		        'build/attrs.dom.light-<%= pkg.version %>.js': files_light,
-				'build/attrs.dom.tiny-<%= pkg.version %>.js': files_tiny
+		        //'build/attrs.dom.light-<%= pkg.version %>.js': files_light,
+				//'build/attrs.dom.tiny-<%= pkg.version %>.js': files_tiny
 		      }
 		    }
 		},
@@ -96,12 +98,12 @@ module.exports = function(grunt) {
 			dist: {
 				files: {
 					'build/attrs.dom.min.js': ['build/attrs.dom.js'],
-					'build/attrs.dom.light.min.js': ['build/attrs.dom.light.js'],
-					'build/attrs.dom.tiny.min.js': ['build/attrs.dom.tiny.js'],
+					//'build/attrs.dom.light.min.js': ['build/attrs.dom.light.js'],
+					//'build/attrs.dom.tiny.min.js': ['build/attrs.dom.tiny.js'],
 					
 					'build/attrs.dom.min-<%= pkg.version %>.js': ['build/attrs.dom.js'],
-					'build/attrs.dom.light.min-<%= pkg.version %>.js': ['build/attrs.dom.light.js'],
-					'build/attrs.dom.tiny.min-<%= pkg.version %>.js': ['build/attrs.dom.tiny.js']
+					//'build/attrs.dom.light.min-<%= pkg.version %>.js': ['build/attrs.dom.light.js'],
+					//'build/attrs.dom.tiny.min-<%= pkg.version %>.js': ['build/attrs.dom.tiny.js']
 				}
 			}
 		},

@@ -397,34 +397,18 @@ var SelectorBuilder = (function() {
 	
 	SelectorBuilder.fn = commons;
 	SelectorBuilder.on = function(type, fn, bubble) {
-		if( window.addEventListener ) {
-			window.addEventListener(type, fn, ((bubble===true) ? true : false));
-		} else if( window.attachEvent ) {
-			if( type == 'DOMContentLoaded' ) {
-				document.attachEvent("onreadystatechange", function(){
-					if ( document.readyState === "complete" ) {
-						document.detachEvent( "onreadystatechange", arguments.callee );
-						if( fn ) fn.apply(this, arguments);
-					}
-				});
-			} else {
-				document.attachEvent('on' + type, fn, ((bubble===true) ? true : false));
-			}
-		}
+		window.addEventListener(type, fn, ((bubble===true) ? true : false));
 		return this;
 	};
 
 	SelectorBuilder.off = function(type, fn, bubble) {
-		if( window.removeEventListener ) {
-			window.removeEventListener(type, fn, ((bubble===true) ? true : false));
-		} else {
-			document.detachEvent('on' + type, fn, ((bubble===true) ? true : false));
-		}
+		window.removeEventListener(type, fn, ((bubble===true) ? true : false));
 		return this;
 	};
 
 	SelectorBuilder.ready = function(fn) {
-		return SelectorBuilder.on('DOMContentLoaded', fn);
+		document.addEventListener('DOMContentLoaded', fn);
+		return this;
 	};
 	
 	SelectorBuilder.addon = {};
@@ -1370,22 +1354,11 @@ var SelectorBuilder = (function() {
 				var el = this;
 		
 				for(var i=0; i < types.length; i++) {
-					var type = types[i];
-			
-					if( el.addEventListener ) {
-						el.addEventListener(type, fn, capture);
-
-						if( type.toLowerCase() == 'transitionend' ) {
-							el.addEventListener('webkitTransitionEnd', fn, capture);
-						}
-					} else if( el.attachEvent ) {
-						el.attachEvent('on' + type, fn);
-					}
+					el.addEventListener(types[i], fn, capture);
 				}			
 			});
 		};
 	
-
 		fn.off = function(types, fn, capture) {
 			if( typeof(types) !== 'string' ) return console.error('invalid event type', types);
 			if( typeof(fn) !== 'function' ) return console.error('invalid fn', fn);
@@ -1397,24 +1370,16 @@ var SelectorBuilder = (function() {
 				var el = this;
 		
 				for(var i=0; i < types.length; i++) {
-					var type = types[i];
-			
-					if( el.removeEventListener ) {
-						el.removeEventListener(type, fn, capture);
-
-						if( type.toLowerCase() == 'transitionend' )
-							el.removeEventListener('webkitTransitionEnd', fn, capture);
-					} else if( el.attachEvent ) {
-						el.detachEvent('on' + type, fn);
-					}
+					el.removeEventListener(types[i], fn, capture);
 				}
 			});
 		};
 
-		fn.fire = function(types, values) {
+		fn.fire = function(types, values, options) {
 			if( !types ) return console.error('invalid event type:', types);
 	
 			values = values || {};
+			options = options || {};
 			types = types.split(' ');
 			
 			var document = this.document;
@@ -1423,39 +1388,32 @@ var SelectorBuilder = (function() {
 		
 				for(var i=0; i < types.length; i++) {
 					var type = types[i];
-			
-					// eventName, bubbles, cancelable
-					if( document.createEvent ) {
-						e = document.createEvent('Event');
-						e.initEvent(type, ((values.bubbles===true) ? true : false), ((values.cancelable===true) ? true : false));
-					} else if( document.createEventObject ) {
-						e = document.createEventObject();
+					
+					if( window.Event && values instanceof Event ) {
+						e = values;
+					} else if( window.CustomEvent ) {
+						e = new CustomEvent(type, {detail:values});
 					} else {
-						return console.error('this browser does not supports manual dom event fires');
-					}
-	
-					for(var k in values) {
-						if( !values.hasOwnProperty(k) ) continue;
-						var v = values[k];
-						try {
-							e[k] = v;
-						} catch(err) {
-							console.error('[WARN] illegal event value', e, k);
+						if( document.createEvent ) {
+							e = document.createEvent(options.eventType || 'Event');
+							e.initEvent(type);
+						} else {
+							return console.error('this browser does not supports manual dom event fires');
 						}
 					}
-					e.values = values;
+					
+					if( !e.detail ) e.detail = values;
+					
 					e.src = this;
 
 					if( el.dispatchEvent ) {
 						el.dispatchEvent(e);
 					} else {
-						e.cancelBubble = ((values.bubbles===true) ? true : false);
-						el.fireEvent('on' + type, e );
+						return console.error('this browser does not supports manual dom event fires');
 					}
 				}
 			});
-		};
-	
+		};	
 	
 		// view handling
 		fn.hide = function(options, fn) {

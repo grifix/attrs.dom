@@ -10,7 +10,7 @@
 	var evalHtml = util.evalHtml;
 	
 	// event extention		
-	if( eval('typeof(EventDispatcher) !== "undefined"') ) {
+	/*if( eval('typeof(EventDispatcher) !== "undefined"') ) {
 		fn.on = function(types, fn, capture) {
 			if( typeof(types) !== 'string' ) return console.error('invalid event type', types);
 			if( typeof(fn) !== 'function' ) return console.error('invalid fn', fn);
@@ -129,7 +129,7 @@
 				}
 			});
 		};
-	}
+	}*/
 		
 	if( eval('typeof(MutationObserver) !== "undefined"') ) {
 		fn.observe = function(fn, options) {
