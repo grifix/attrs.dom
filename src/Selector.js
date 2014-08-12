@@ -382,11 +382,15 @@ var SelectorBuilder = (function() {
 			return Selector(el).contents().owner(null);
 		};
 		
+		Selector.ready = function(fn) {
+			document.addEventListener('DOMContentLoaded', fn);
+			return this;
+		};
+		
 		Selector.util = SelectorBuilder.util;
 		Selector.addon = SelectorBuilder.addon;
 		Selector.on = SelectorBuilder.on;
 		Selector.off = SelectorBuilder.off;
-		Selector.ready = SelectorBuilder.ready;
 		
 		return Selector;
 	};

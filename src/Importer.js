@@ -122,13 +122,148 @@ var Importer = (function() {
 		};
 	}*/
 		
-	var createOwnerDocument = function(contents, script, type) {
+	/*if( false ) {
+		(function () {
+			function CustomEvent ( event, params ) {
+				params = params || { bubbles: false, cancelable: false, detail: undefined };
+				var evt = document.createEvent( 'CustomEvent' );
+				evt.initCustomEvent( event, params.bubbles, params.cancelable, params.detail );
+				return evt;
+			};
+
+			CustomEvent.prototype = window.Event.prototype;
+			window.CustomEvent = CustomEvent;
+		})();
+		
+		function triggerEvent(el, type){
+	        var event;
+	        if( document.createEvent ) {
+	            event = document.createEvent('HTMLEvents');
+	            event.initEvent(type, true, true);
+	        } else if( document.createEventObject ) { // IE < 9
+	            event = document.createEventObject();
+	            event.eventType = type;
+	        }
+			
+	        if( el.dispatchEvent ) {
+	            el.dispatchEvent(event);
+	        } else if( el.fireEvent && htmlEvents['on' + type] ) { // IE < 9
+	            el.fireEvent('on' + type, event); // can trigger only real event (e.g. 'click')
+	        } else if( el[type]) {
+	            el[eventName]();
+	        } else if( el['on' + type] ) {
+	            el['on' + type]();
+	        }
+	    }
+		
+	    function addEvent(el,type,handler){
+	        if(el.addEventListener){
+	            el.addEventListener(type,handler,false);
+	        }else if(el.attachEvent && htmlEvents['on'+type]){// IE < 9
+	            el.attachEvent('on'+type,handler);
+	        }else{
+	            el['on'+type]=handler;
+	        }
+	    }
+		
+	    function removeEvent(el,type,handler){
+	        if(el.removeventListener){
+	            el.removeEventListener(type,handler,false);
+	        }else if(el.detachEvent && htmlEvents['on'+type]){// IE < 9
+	            el.detachEvent('on'+type,handler);
+	        }else{
+	            el['on'+type]=null;
+	        }
+	    }
+	}*/
+		
+	function resolveScript(ownerDocument, script) {
+		var src = script.getAttribute('src');
+		var text = script.nodeValue || script.textContent;
+		var type = script.type || script.getAttribute('type');
+
+		if( type && type.trim().toLowerCase() !== 'text/javascript' ) return;
+									
+		var original_ownerDocument, original_currentScript;
+	
+		if( Object.getOwnPropertyDescriptor ) {
+			original_ownerDocument = Object.getOwnPropertyDescriptor(script, 'ownerDocument');
+			original_currentScript = Object.getOwnPropertyDescriptor(document, 'currentScript');
+		} else {
+			original_ownerDocument = script.ownerDocument;
+			original_currentScript = document.currentScript;
+		}
+		
+		var doc = ownerDocument;
+		// make currentScript & ownerDocument
+		if( !script.ownerDocument ) {
+			if( Object.defineProperty ) {
+				Object.defineProperty(script, 'ownerDocument', {
+					configurable: true,
+					get: function() {
+						return doc;
+					}
+				});
+			} else {
+				script.ownerDocument = ownerDocument;
+			}
+		}
+		if( !document.currentScript ) {
+			if( Object.defineProperty ) {									
+				Object.defineProperty(document, 'currentScript', {
+					configurable: true,
+					get: function() {
+						return script;
+					}
+				});
+			} else {
+				document.currentScript = script;
+			}
+		}
+	
+		// execute
+		if( src ) {
+			console.log('remote', src);
+			var async = script.getAttribute('async');
+			if( async === '' || async ) async = true;
+			var charset = script.getAttribute('charset');
+			Ajax.ajax({
+				url: src,
+				sync: !async,
+				charset: charset,
+			}).done(function(err, text) {
+				//if( err ) return console.error(err);
+				if( !err ) window.__evalscript__(text);
+			});
+		} else if( text ) {
+			window.__evalscript__(text);
+		}
+	
+		if( Object.defineProperty ) {
+			if( original_ownerDocument ) Object.defineProperty(script, 'ownerDocument', original_ownerDocument);
+			if( original_currentScript ) Object.defineProperty(document, 'currentScript', original_currentScript);
+			
+			script = null;
+			doc = null;
+		} else {
+			script.ownerDocument = original_ownerDocument;
+			document.currentScript = original_currentScript;
+		}
+	}
+	
+		
+	var createOwnerDocument = function(options) {
 		var doc;
 		
-		if( window.DOMParser ) {
+		var contents = options.contents;
+		var noscript = options.noscript;
+		var base = options.base;
+				
+		/*if( window.DOMParser ) {
 			var parser = new DOMParser();
-			doc = parser.parseFromString(contents, type || "text/html");
-		} 
+			doc = parser.parseFromString(initial, type || "text/html");
+			//WARN: DOMParser 로 초기화된 document 는 webkit 에서 dispatchEvent 가 먹히지 않는다. chrome X, ff O
+		}*/
 		
 		if( !doc && document.implementation && document.implementation.createHTMLDocument ) {
 			doc = document.implementation.createHTMLDocument('');
@@ -142,92 +277,81 @@ var Importer = (function() {
 			doc.close();
 		}
 		
-		return doc;		
+		if( noscript !== true ) {
+			var headflag = [];
+			var head = doc.head && doc.head.childNodes;
+			if( head && head.length ) {
+				head = Array.prototype.slice.call(head);
+				head.forEach(function(el) {
+					doc.head.removeChild(el);
+					headflag.push(el);
+				});
+			}
+			
+			var bodyflag = [];
+			var body = doc.body && doc.body.childNodes;
+			if( body && body.length ) {
+				body = Array.prototype.slice.call(body);
+				body.forEach(function(el) {
+					doc.body.removeChild(el);
+					bodyflag.push(el);
+				});
+			}
+			
+			// let's write & execute
+			var fill = function(flag, target) {
+				flag.forEach(function(el) {
+					var tag = el.tagName && el.tagName.toLowerCase();
+				
+					// fixlink src & href
+					if( tag && base ) {
+						var arg = Array.prototype.slice.call(el.querySelectorAll('*'));
+						arg.push(el);
+					
+						arg.forEach(function(sub) {
+							var src = sub.getAttribute('src');
+							var href = sub.getAttribute('href');
+							if( src && !src.startsWith('#') ) sub.setAttribute('src', Path.join(base, src));			
+							if( href && !href.startsWith('#') ) sub.setAttribute('href', Path.join(base, href));
+						});
+					}
+				
+					if( tag === 'script' ) {
+						resolveScript(doc, el);
+					} else if( tag === 'style' ) {
+						document.head.appendChild(el.cloneNode(true));
+					} else if( tag === 'link' ) {
+						var rel = (el.getAttribute('rel') || '').toLowerCase().trim();
+						if( rel === 'stylesheet' ) {
+							document.head.appendChild(el.cloneNode(true));
+						}
+					}
+				
+					target.appendChild(el);
+				});
+			};
+			
+			fill(headflag, doc.head);
+			fill(bodyflag, doc.body);
+			
+	       	var event = doc.createEvent('Event');
+			event.initEvent('DOMContentLoaded', true, true);
+			doc.dispatchEvent(event);
+		}
+		
+		return doc;
 	}
 	
-	var process = function(data) {
-		var ownerDocument = createOwnerDocument(data);
-	
-		// execute scripts
-		var $ = SelectorBuilder(ownerDocument);
-		var scripts = $('script');
-		scripts.each(function() {
-			var script = this;
-														
-			var src = script.src;
-			var text = script.nodeValue || script.textContent;
-			var type = script.type;
-
-			if( type && type.trim().toLowerCase() !== 'text/javascript' ) return;
-								
-			var original_ownerDocument, original_currentScript;
-		
-			if( Object.getOwnPropertyDescriptor ) {
-				original_ownerDocument = Object.getOwnPropertyDescriptor(script, 'ownerDocument');
-				original_currentScript = Object.getOwnPropertyDescriptor(document, 'currentScript');
-			} else {
-				original_ownerDocument = script.ownerDocument;
-				original_currentScript = document.currentScript;
-			}
-			
-			var doc = ownerDocument;
-			// make currentScript & ownerDocument
-			if( !script.ownerDocument ) {
-				if( Object.defineProperty ) {
-					Object.defineProperty(script, 'ownerDocument', {
-						configurable: true,
-						get: function() {
-							return doc;
-						}
-					});
-				} else {
-					script.ownerDocument = ownerDocument;
-				}
-			}
-			if( !document.currentScript ) {
-				if( Object.defineProperty ) {									
-					Object.defineProperty(document, 'currentScript', {
-						configurable: true,
-						get: function() {
-							return script;
-						}
-					});
-				} else {
-					document.currentScript = script;
-				}
-			}
-		
-			// execute
-			if( src ) {
-				//result = require(src);
-			} else if( text ) {
-				//console.log('script', text);
-				window.__evalscript__(text);
-			}
-		
-			if( Object.defineProperty ) {
-				if( original_ownerDocument ) Object.defineProperty(script, 'ownerDocument', original_ownerDocument);
-				if( original_currentScript ) Object.defineProperty(document, 'currentScript', original_currentScript);
-				
-				script = null;
-				doc = null;
-			} else {
-				script.ownerDocument = original_ownerDocument;
-				document.currentScript = original_currentScript;
-			}
-		});
-			
-		return ownerDocument;
-	};
-		
 	return {
+		createOwnerDocument: createOwnerDocument,
+		resolveScript: resolveScript,
 		load: function(options) {
 			if( typeof(options) === 'string' ) options = {url:options};
 			
 			//options.responseType = 'document';
 			var src = options.url;
 			var base = options.base || Path.dir(Path.join(location.href, src));
-			
+						
 			return {
 				done: function(callback, async) {
 					if( async === true ) return this.async(callback);
@@ -241,11 +365,11 @@ var Importer = (function() {
 						if( typeof(callback) === 'function' ) {
 							if( err ) return callback(err);
 						
-							result = process(data);
+							result = createOwnerDocument({contents:data, base:base});
 							callback(null, result);
 						} else {
 							if( err ) throw err;
-							else result = process(data);
+							else result = createOwnerDocument({contents:data, base:base});
 						}
 					});
 					return result;
@@ -253,7 +377,7 @@ var Importer = (function() {
 				async: function(callback) {
 					return Ajax.ajax(options).done(function(err, data) {						
 						if( err ) return callback(err);
-						callback(null, process(data));
+						callback(null, createOwnerDocument({contents:data, base:base}));
 					});
 				}
 			};
@@ -266,6 +390,11 @@ SelectorBuilder.fn['import'] = function(options, async, callback) {
 	
 	var $ = this.$;
 	var document = this.document;
+	
+	if( typeof(async) === 'function' ) {
+		callback = async;
+		async = null;
+	}
 	
 	return this.each(function() {
 		var el = this;
@@ -280,8 +409,8 @@ SelectorBuilder.fn['import'] = function(options, async, callback) {
 		Importer.load(options).done(function(err, doc) {
 			if( err ) return callback(err);
 			if( doc.body && doc.body.childNodes.length ) {
-				var body = document.importNode(doc.body, true);
-				$(el).append(body);
+				//var body = document.adoptNode(doc.body);
+				$(el).append(doc.body.childNodes);
 			}
 			
 			callback(null, doc);

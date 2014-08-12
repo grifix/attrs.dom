@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+		<meta name="author" content="joje.attrs@gmail.com">
+		
+		<title>import - native</title>	
+
+		<script type="text/javascript" src="../build/attrs.dom.js"></script>
+		<link rel="import" href="partials/partial.html">
+		
+		<script>
+			var $ = require('attrs.dom');
+			$.ready(function() {
+				console.debug('local document ready!');
+				$('div').css('border', '1px dotted orange');
+				
+				var link = document.querySelector('link[rel="import"]');
+				var content = link.import;
+				
+				console.log('imported', content);
+
+				$('#slot').append(content.querySelectorAll('div'));
+				
+				console.log(window.a);
+				console.log(window.b);
+			});
+		</script>
+	</head>
+	<body>
+		<div id="slot"></div>
+		
+		<div>local</div>
+	</body>
+</html>
+

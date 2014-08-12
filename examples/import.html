@@ -6,39 +6,39 @@
 		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
 		<meta name="author" content="joje.attrs@gmail.com">
 		
-		<title>attrs.dom</title>
-		<script type="text/javascript" src="build/attrs.dom.js"></script>		
+		<title>import</title>
+		<script type="text/javascript" src="../build/attrs.dom.js"></script>
 		<script type="text/javascript">
-		//<![CDATA[
 			var $ = require('attrs.dom');
-			var importer = $.Importer;
 			
 			//console.log('document.documentElement', document.documentElement, document.createElement('html'));
 			
 			if( false ) {
 				// programatically	
-				importer.load('partial.html').async(function(err, doc) {
+				var Importer = $.Importer;
+				
+				Importer.load('partials/partial.html').async(function(err, doc) {
 					if( err ) return console.error(err);
 				
-					console.debug('imported', doc);
+					console.debug('imported document', doc);
 				});
 			
-				window.addEventListener('DOMContentLoaded', function(e) {					
-					var result = importer.load('partial.html').sync();
-					console.log('result', result);
-				});
+				var doc = Importer.load('partials/partial.html').sync();
+				console.log('imported document', doc);
 			}
 			
 			console.log('root $', $.prototype);
 			
 			$.ready(function(e) {
 				$('div').css('border', '1px dotted orange');
-				$('#slot').import('partial.html');
+				$('#slot').import('partials/partial.html', function(err, doc) {
+					if( err ) return console.error('error', err);
+					console.log('imported', doc);
+				});
 				
 				console.log(window.a);
 				console.log(window.b);
 			});
-		//]]>
 		</script>
 	</head>
 	<body>
