@@ -11,6 +11,7 @@ var files = [
 	'./src/Scroller.js',
 	'./src/Selector.js',
 	'./src/Extentions.js',
+	'./src/Importer.js',
 	'./src/EOF.js'
 ];
 

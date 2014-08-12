@@ -3,10 +3,15 @@
  * 
  * @author: joje (https://github.com/joje6)
  * @version: 0.1.0
- * @date: 2014-08-01 5:55:19
+ * @date: 2014-08-07 14:27:31
 */
 
 (function() {
+	if (!String.prototype.trim) {
+	  String.prototype.trim = function () {
+	    return this.replace(/^\s+|\s+$/g, '');
+	  };
+	}
 	
 
 var Path = (function() {
@@ -763,14 +768,14 @@ var Require = (function() {
 	}
 
 	// create sandbox
-	var excepts = ['require', 'Map', 'Set', 'WeakMap', 'console', 'alert', 'confirm', 'print', 'prompt', 'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'];
+	var excepts = ['document', 'window', 'require', 'Map', 'Set', 'WeakMap', 'console', 'alert', 'confirm', 'print', 'prompt', 'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'];
 	var sandbox = function() {
 		var o = {};
 
-		for(var k in window) {
-			if( ~excepts.indexOf(k) ) continue;
-			o[k] = undefined;
-		}
+		/*for(var k in window) {
+			//if( ~excepts.indexOf(k) ) continue;
+			//o[k] = undefined;
+		}*/
 
 		return o;
 	};
@@ -885,6 +890,7 @@ var Require = (function() {
 		var bundles = {
 			'window': window,
 			'document': document,
+			'require': Require,
 			'ajax': function(module) {  module.exports = Ajax; },
 			'path': function(module) {  module.exports = Path; },
 			'events': function(module) {  module.exports = EventDispatcher; }

@@ -13,28 +13,22 @@
 		<script type="text/javascript">
 		//<![CDATA[
 			var $ = $ || require('attrs.dom');
-			
-			
-			
+						
 			$.ready(function(e) {
 				console.log('DOM Ready!', document.body);
 				
-				console.log($.create('div', [1,2,3,4,5]).html(function(d) {
-					return '<p>' + d + '</p>';
-				})[0]);
+				if( true ) {					
+					console.log($.create('div.wrapping', [1,2,3,4,5]).html(function(d) {
+						return '<p>' + d + '</p>';
+					})[0]);
 				
-				console.log($.create('div', [1,2,3,4,5]).html(function(d) {
-					return 'a-' + d;
-				})[0]);
-				
-				if( false ) {
-					console.log('$.device', $.device);
-					console.log('$.Animator', $.Animator);
-					console.log('$.CSS3Calibrator', $.CSS3Calibrator);
-					console.log('$.Scroller', $.Scroller);
-					console.log('$.StyleSession', $.StyleSession);
-					console.log('$.Template', $.Template);
-					console.log('$.EventDispatcher', $.EventDispatcher);
+					console.log($.create('div', [1,2,3,4,5]).html(function(d) {
+						return 'a-' + d;
+					})[0]);
+					
+					
+					console.log('$.addon', $.addon);
+					console.log('$.util', $.util);
 					
 					console.log($('div'));
 					console.log($('div').all());
@@ -51,6 +45,7 @@
 					arr.add($.create('p', 5), 0);
 					console.log(arr);
 					
+					console.log('div.wrapper', $.create('div.wrapper'));
 					$.create('div.wrapper').appendTo(document.body).create('div.item').html('test').on('*', function(e) {
 						console.log(e.type, e);
 					}).detach();
@@ -69,22 +64,22 @@
 					console.log($('#content').name('test!!!').name(false)[0]);
 				
 					$('.gnb').id('gnb');
-					console.log($('.gnb').attr());
+					console.log($('.gnb').attrs());
 				
 					$('#content').attr('name1', 'value1');
-					console.log($('#content').attr());
+					console.log($('#content').attrs());
 				
-					$('#content').attr({
+					$('#content').attrs({
 						'name2': 'value2',
 						'name3': 'value3'
 					});
-					console.log($('#content').attr());
+					console.log($('#content').attrs());
 				
-					$('#content').attr({
+					$('#content').attrs({
 						'name2': '',
 						'name3': false
 					});
-					console.log($('#content').attr());
+					console.log($('#content').attrs());
 				
 					// style
 					console.log('\n\n - style');
@@ -282,7 +277,7 @@
 						console.log('call', this, d);
 					});
 					
-					$('div').attr('a', 1).attr({b:2,a:false});
+					$('div').attr('a', 1).attrs({b:2,a:false});
 					
 					
 					console.log($('#content').bg('url("http://www.w3schools.com/images/w3logotest2.png")').bg());
@@ -395,24 +390,24 @@
 					
 					
 				
-					var el = $.util.create('div#test-item.a.b.c');
-					console.log('is a', $(el).is('a'));
-					console.log('is b', $(el).is('b'));
-					console.log('is c', $(el).is('c'));
-					console.log('is a b', $(el).is('a b'));
-					console.log('is a c', $(el).is('a c'));
-					console.log('is a b c', $(el).is('a b c'));
-					console.log('is d', $(el).is('d'));
-					console.log('is a b d', $(el).is('a b d'));
+					var el = $.create('div#test-item.a.b.c');
+					console.log('is a', el.is('.a'));
+					console.log('is b', el.is('.b'));
+					console.log('is c', el.is('.c'));
+					console.log('is a b', el.is('.a.b'));
+					console.log('is a c', el.is('.a.c'));
+					console.log('is a b c', el.is('.a.b.c'));
+					console.log('is d', el.is('.d'));
+					console.log('is a b d', el.is('.a.b.d'));
 				
-					console.log('div', $.util.match(el, 'div'));
-					console.log('div#test-item', $.util.match(el, 'div#test-item'));
-					console.log('div#test-item2', $.util.match(el, 'div#test-item2'));
-					console.log('#test-item', $.util.match(el, '#test-item'));
-					console.log('#test-item2', $.util.match(el, '#test-item2'));
-					console.log('.a', $.util.match(el, '.a'));
-					console.log('#test-item.a.c', $.util.match(el, '#test-item.a.c'));
-					console.log('.a.d', $.util.match(el, '.a.d'));
+					console.log('div', el.is('div'));
+					console.log('div#test-item', el.is('div#test-item'));
+					console.log('div#test-item2', el.is('div#test-item2'));
+					console.log('#test-item', el.is('#test-item'));
+					console.log('#test-item2', el.is('#test-item2'));
+					console.log('.a', el.is('.a'));
+					console.log('#test-item.a.c', el.is('#test-item.a.c'));
+					console.log('.a.d', el.is('.a.d'));
 					
 
 				

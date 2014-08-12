@@ -1,12 +1,13 @@
-(function($) {
+(function() {
 	"use strict";
 	
-	var fn = $.fn;
+	var fn = SelectorBuilder.fn;
 	
-	var array_return = $.util.array_return;
-	var resolve = $.util.resolve;
-	var data = $.util.data;
-	var evalHtml = $.util.evalHtml;
+	var util = SelectorBuilder.util;
+	var array_return = util.array_return;
+	var resolve = util.resolve;
+	var data = util.data;
+	var evalHtml = util.evalHtml;
 	
 	// event extention		
 	if( eval('typeof(EventDispatcher) !== "undefined"') ) {
@@ -128,10 +129,13 @@
 				}
 			});
 		};
+	}
 		
+	if( eval('typeof(MutationObserver) !== "undefined"') ) {
 		fn.observe = function(fn, options) {
 			if( typeof(fn) !== 'function' ) return console.error('illegal fn(function)', fn);
 			
+			var $ = this.$;
 			return this.each(function() {
 				var observer;
 				if( fn === false ) {
@@ -146,7 +150,8 @@
 			});
 		};
 		
-		$.ready(function() {
+		SelectorBuilder.ready(function() {
+			var $ = SelectorBuilder(document);
 			observe(document.body, function(e) {
 				if( e.type === 'childList' ) {
 					var target = e.target;
@@ -179,7 +184,7 @@
 		
 		var observers = [];
 		var observe = function(target, fn, options) {
-			if( !$.util.isElement(target) ) return console.error('illegal target(element)', target);
+			if( !util.isElement(target) ) return console.error('illegal target(element)', target);
 			if( typeof(fn) !== 'function' ) return console.error('illegal fn(function)', fn);
 			
 			// MutationObserver setup for detect DOM node changes.
@@ -222,6 +227,8 @@
 		};
 
 		fn.tpl = function(data, functions) {
+			var document = this.document;
+			var $ = this.$;
 			if( !arguments.length ) {
 				var arr = [];
 				this.each(function() {
@@ -239,8 +246,8 @@
 					for(var i=0; i < d.length; i++) {
 						var el = $(this).clone()[0];
 						if( el.tagName.toLowerCase() === 'script' ) {
-							el = evalHtml(el.textContent || el.innerHTML || el.innerText)[0];
-						}					
+							el = evalHtml(document, el.textContent || el.innerHTML || el.innerText)[0];
+						}
 				
 						new Template(el).bind(d[i], functions);
 						arr.push(el);
@@ -252,4 +259,4 @@
 			}
 		};
 	}
-})($);
+})();

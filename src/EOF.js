@@ -1,12 +1,14 @@
 	
 	// exports inner classes
-	if( eval('typeof(Animator) !== "undefined"') ) $.Animator = Animator;
-	if( eval('typeof(CSS3Calibrator) !== "undefined"') ) $.CSS3Calibrator = CSS3Calibrator;
-	if( eval('typeof(Device) !== "undefined"') ) $.device = Device;
-	if( eval('typeof(Scroller) !== "undefined"') ) $.Scroller = Scroller;
-	if( eval('typeof(StyleSession) !== "undefined"') ) $.StyleSession = StyleSession;
-	if( eval('typeof(Template) !== "undefined"') ) $.Template = Template;
-	if( eval('typeof(EventDispatcher) !== "undefined"') ) $.EventDispatcher = EventDispatcher;
+	var addon = SelectorBuilder.addon;
+	if( eval('typeof(Animator) !== "undefined"') ) addon.Animator = Animator;
+	if( eval('typeof(CSS3Calibrator) !== "undefined"') ) addon.CSS3Calibrator = CSS3Calibrator;
+	if( eval('typeof(Device) !== "undefined"') ) addon.device = Device;
+	if( eval('typeof(Scroller) !== "undefined"') ) addon.Scroller = Scroller;
+	if( eval('typeof(StyleSession) !== "undefined"') ) addon.StyleSession = StyleSession;
+	if( eval('typeof(Template) !== "undefined"') ) addon.Template = Template;
+	if( eval('typeof(EventDispatcher) !== "undefined"') ) addon.EventDispatcher = EventDispatcher;
+	if( eval('typeof(Importer) !== "undefined"') ) addon.Importer = Importer;
 	
 	
 	// check current is in commonjs context
@@ -18,6 +20,7 @@
 	
 	
 	// binding to global or regist module system. amd, cjs, traditional
+	var $ = SelectorBuilder(document);
 	if( typeof(window.define) === 'function' && define.attrs ) {
 		define('attrs.dom', function(module) {
 			module.exports = $;
@@ -30,7 +33,7 @@
 		exports = $;
 	} else {
 		var original = window.$;
-		window.$ = window.Alien = $;
+		window.$ = $;
 	
 		$.noConflict = function() {
 			window.$ = original;

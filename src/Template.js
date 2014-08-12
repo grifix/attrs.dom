@@ -34,6 +34,7 @@ var Template = (function() {
 
 	// class Template
 	function Template(el) {
+		if( !el ) throw new TypeError('el was null');
 		this.el = el;
 	}
 	
