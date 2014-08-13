@@ -251,11 +251,13 @@ var Importer = (function() {
 		}
 	}
 	
-		
-	var createOwnerDocument = function(options) {
+	function createDocument(options) {
 		var doc;
 		
-		var contents = options.contents;
+		if( typeof(options) === 'string' ) options = {contents:options};
+		
+		options = options || {};
+		var contents = options.contents || '';
 		var noscript = options.noscript;
 		var base = options.base;
 				
@@ -345,7 +347,7 @@ var Importer = (function() {
 	}
 	
 	return {
-		createOwnerDocument: createOwnerDocument,
+		createDocument: createDocument,
 		resolveScript: resolveScript,
 		load: function(options) {
 			if( typeof(options) === 'string' ) options = {url:options};
@@ -367,11 +369,11 @@ var Importer = (function() {
 						if( typeof(callback) === 'function' ) {
 							if( err ) return callback(err);
 						
-							result = createOwnerDocument({contents:data, base:base});
+							result = createDocument({contents:data, base:base});
 							callback(null, result);
 						} else {
 							if( err ) throw err;
-							else result = createOwnerDocument({contents:data, base:base});
+							else result = createDocument({contents:data, base:base});
 						}
 					});
 					return result;
@@ -379,13 +381,20 @@ var Importer = (function() {
 				async: function(callback) {
 					return Ajax.ajax(options).done(function(err, data) {						
 						if( err ) return callback(err);
-						callback(null, createOwnerDocument({contents:data, base:base}));
+						callback(null, createDocument({contents:data, base:base}));
 					});
 				}
 			};
 		}
 	};
 })();
+
+SelectorBuilder.util.createDocument = Importer.createDocument;
+SelectorBuilder.util.resolveScript = Importer.resolveScript;
+SelectorBuilder.staticfn.newDocument = function() {
+	var doc = Importer.createDocument.apply(this, arguments);
+	return SelectorBuilder(doc);
+};
 
 SelectorBuilder.fn['import'] = function(options, async, callback) {
 	"use strict";

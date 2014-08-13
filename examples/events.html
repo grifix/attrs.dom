@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+		<meta name="author" content="joje.attrs@gmail.com">
+		
+		<title>attrs.dom</title>
+
+		<script type="text/javascript" src="../build/attrs.dom.js"></script>
+		
+		<script type="text/javascript">
+			var $ = $ || require('attrs.dom');
+						
+			$.ready(function(e) {
+				console.log('DOM Ready!');
+				
+				$('#slot').on('custom', function(e) {
+					console.log('custom event fired', e, e.detail);
+				});
+				
+				$('#slot').on('custom2', function(e) {
+					console.log('custom2 event fired', e, e.detail);
+				});
+				
+				$('#slot').on('click', function(e) {
+					console.log('clicked', e, e.detail);
+				});
+			
+				$('#slot').fire('custom', {key:'value'});
+				$('#slot').fire('custom custom2');
+				$('#slot').fire('custom', {key:'value'}, {cancelable:true,bubbles:true});
+				
+				var e = document.createEvent('MouseEvent');
+				e.initMouseEvent('click', true, true, window, 1, 800, 600, 290, 260, false, false, false, false, 0, $('#slot')[0]);
+				var result = $('#slot').fire('click', e);
+				console.log('event', result);
+				
+				console.log($('#slot').firethru('custom'));
+			});
+		</script>
+	</head>
+	<body>
+		<div id="slot">slot</div>
+	</body>
+</html>
+

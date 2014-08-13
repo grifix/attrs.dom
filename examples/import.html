@@ -11,37 +11,37 @@
 		<script type="text/javascript">
 			var $ = require('attrs.dom');
 			
-			//console.log('document.documentElement', document.documentElement, document.createElement('html'));
-			
-			if( false ) {
+			function programatically() {
 				// programatically	
-				var Importer = $.Importer;
-				
+				var Importer = $.addon.Importer;
+
 				Importer.load('partials/partial.html').async(function(err, doc) {
 					if( err ) return console.error(err);
-				
+
 					console.debug('imported document', doc);
+					
+					$('#slot').append(doc.body.childNodes);
 				});
-			
+
 				var doc = Importer.load('partials/partial.html').sync();
 				console.log('imported document', doc);
+				
+				$('#slot').append(doc.body.childNodes);
 			}
-			
+
 			$.ready(function(e) {
+				console.log('DOM Ready!');
+				
 				$('div').css('border', '1px dotted orange');
 				$('#slot').import('partials/partial.html', function(err, doc) {
 					if( err ) return console.error('error', err);
 					console.log('imported', doc);
 				});
 				
+				programatically();
+
 				console.log('window.a', window.a);
 				console.log('window.b', window.b);
-				
-				$('#slot').on('custom.test', function(e) {
-					console.log('custom event fired', e, e.detail);
-				});
-			
-				$('#slot').fire('custom.test', {key:'value'});
 			});
 		</script>
 	</head>

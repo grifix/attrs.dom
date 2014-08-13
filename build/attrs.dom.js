@@ -3,7 +3,7 @@
  * 
  * @author: joje (https://github.com/joje6)
  * @version: 0.1.0
- * @date: 2014-08-13 6:30:15
+ * @date: 2014-08-14 7:7:21
 */
 
 /*!
@@ -4101,9 +4101,12 @@ var SelectorBuilder = (function() {
 	Commons.prototype = new Array();
 	var commons = new Commons();
 	
+	var Selectors = [];
 	// build selector
-	var SelectorBuilder = function(document) {
+	var SelectorBuilder = function(document, root) {
 		"use strict";
+		
+		if( !document || document.nodeType !== 9 ) return console.error('illegal arguments', document, root);
 	
 		function Selection(selector, criteria, single) {
 			this.length = 0;
@@ -4112,7 +4115,8 @@ var SelectorBuilder = (function() {
 	
 		var __root__ = {};
 		function Selector(selector, criteria, single) {
-			if( selector instanceof Selector ) return selector;
+			if( selector && selector.nodeType === 9 ) return SelectorBuilder(selector);
+			else if( selector instanceof Selector ) return selector;
 			else if( selector === document || selector === window ) return Selector;
 			else if( selector !== __root__ ) return new Selection(selector, criteria, single);
 		}
@@ -4120,19 +4124,27 @@ var SelectorBuilder = (function() {
 		Selector.prototype = commons;
 		var fns = Selection.prototype = new Selector(__root__);
 		
-		Selector.document = fns.document = document;	
+		Selector.document = fns.document = document;
+		Selector.root = fns.root = root || document;
 		Selector.fn = commons;
 		Selector.plugins = fns;
 		Selector.plugins.$ = Selector;
 		Selector.builder = SelectorBuilder;
 		Selector.branch = function(doc) {
-			return SelectorBuilder(doc);	
+			if( typeof(doc) === 'string' ) doc = document.querySelector(doc);
+			
+			if( doc && doc.nodeType === 9 ) return SelectorBuilder(doc);
+			
+			if( !isElement(doc) ) return console.error('illegal argument', doc);
+			
+			var root = doc;
+			var doc = doc.ownerDocument;
+			return SelectorBuilder(doc, root);
 		};
 		
 		Selector.create = function() {
-			var tmp = Selector(document.createElement('div'));
+			var tmp = Selector(document.createDocumentFragment());
 			var items = tmp.create.apply(tmp, arguments).owner(null);
-			tmp = null;
 			return items;
 		};
 	
@@ -4141,7 +4153,7 @@ var SelectorBuilder = (function() {
 		};
 	
 		Selector.text = function(text) {
-			var el = document.createElement('div');
+			var el = document.createElement('p');
 			el.innerText = text;
 			return Selector(el).contents().owner(null);
 		};
@@ -4156,6 +4168,12 @@ var SelectorBuilder = (function() {
 		Selector.on = SelectorBuilder.on;
 		Selector.off = SelectorBuilder.off;
 		
+		var staticfn = SelectorBuilder.staticfn;
+		for(var k in staticfn) {
+			Selector[k] = staticfn[k];
+		}
+		
+		Selectors.push(Selector);
 		return Selector;
 	};
 	
@@ -4174,9 +4192,18 @@ var SelectorBuilder = (function() {
 		document.addEventListener('DOMContentLoaded', fn);
 		return this;
 	};
-	
-	SelectorBuilder.addon = {};
-	SelectorBuilder.util = {
+	SelectorBuilder.staticfn = {
+		refresh: function() {
+			var staticfn = SelectorBuilder.staticfn;
+			Selectors.forEach(function($) {
+				for(var k in staticfn) {
+					$[k] = staticfn[k];
+				}	
+			});
+		}
+	};	// want use $.fn
+	SelectorBuilder.addon = {};		// sub addon classes, $.addon.fn
+	SelectorBuilder.util = {		// util, $.util.fn
 		merge: merge,
 		data: data,
 		isNode: isNode,
@@ -4205,26 +4232,30 @@ var SelectorBuilder = (function() {
 		
 		fn.refresh = function(selector, criteria, single) {			
 			var document = this.document;
-			if( isHtml(selector) ) selector = evalHtml(document, selector, true);
+			var root = this.root;
 			this.clear();
 			this.selector = selector = selector || [];
 			if( criteria ) this.criteria = criteria;
 			if( single === true ) this.single = single = true;
-			if( typeof(selector) === 'string' ) {
+			
+			if( isHtml(selector) ) {
+				selector = evalHtml(document, selector, true);
+				merge.call(this, selector);
+			} else if( typeof(selector) === 'string' ) {
 				var items = [];
 				
 				if( criteria instanceof Commons ) {
 					var self = this;
 					criteria.each(function() {
 						//console.log('selector', this, this.querySelectorAll(selector));	
-						if( single && self.length > 0 ) return;
+						if( single && self.length > 0 ) return false;
 				
 						if( single && this.querySelector ) self.push(this.querySelector(selector));
 						else if( this.querySelectorAll ) merge.call(self, this.querySelectorAll(selector));
 					});
 				} else {
-					if( single ) merge.call(this, (criteria || document).querySelector(selector));
-					else merge.call(this, (criteria || document).querySelectorAll(selector));
+					if( single ) merge.call(this, (criteria || root).querySelector(selector));
+					else merge.call(this, (criteria || root).querySelectorAll(selector));
 				}
 			} else {
 				merge.call(this, selector);
@@ -5138,16 +5169,24 @@ var SelectorBuilder = (function() {
 				}
 			});
 		};
-
+		
+		fn.firethru = function() {
+			this.fire.apply(this, arguments);			
+			return this;
+		};
+		
 		fn.fire = function(types, values, options) {
 			if( !types ) return console.error('invalid event type:', types);
 	
-			values = values || {};
+			values = values;
 			options = options || {};
 			types = types.split(' ');
 			
+			if( values ) options.detail = values;
+			
+			var arge = [];
 			var document = this.document;
-			return this.each(function() {
+			this.each(function() {
 				var e, el = this;
 		
 				for(var i=0; i < types.length; i++) {
@@ -5156,11 +5195,11 @@ var SelectorBuilder = (function() {
 					if( window.Event && values instanceof Event ) {
 						e = values;
 					} else if( window.CustomEvent ) {
-						e = new CustomEvent(type, {detail:values});
+						e = new CustomEvent(type, options);
 					} else {
 						if( document.createEvent ) {
 							e = document.createEvent(options.eventType || 'Event');
-							e.initEvent(type);
+							e.initEvent(type, options.bubbles, options.cancelable);
 						} else {
 							return console.error('this browser does not supports manual dom event fires');
 						}
@@ -5168,16 +5207,24 @@ var SelectorBuilder = (function() {
 					
 					if( !e.detail ) e.detail = values;
 					
+					if( values && (!window.Event || !(values instanceof Event)) && typeof(values) === 'object' ) { 
+						for(var k in values) e[k] = values[k];
+					}
+					
 					e.src = this;
-
+					
 					if( el.dispatchEvent ) {
 						el.dispatchEvent(e);
 					} else {
 						return console.error('this browser does not supports manual dom event fires');
 					}
 				}
+				
+				arge.push(e);
 			});
-		};	
+			
+			return array_return(arge);
+		};
 	
 		// view handling
 		fn.hide = function(options, fn) {
@@ -6001,11 +6048,13 @@ var Importer = (function() {
 		}
 	}
 	
-		
-	var createOwnerDocument = function(options) {
+	function createDocument(options) {
 		var doc;
 		
-		var contents = options.contents;
+		if( typeof(options) === 'string' ) options = {contents:options};
+		
+		options = options || {};
+		var contents = options.contents || '';
 		var noscript = options.noscript;
 		var base = options.base;
 				
@@ -6095,7 +6144,7 @@ var Importer = (function() {
 	}
 	
 	return {
-		createOwnerDocument: createOwnerDocument,
+		createDocument: createDocument,
 		resolveScript: resolveScript,
 		load: function(options) {
 			if( typeof(options) === 'string' ) options = {url:options};
@@ -6117,11 +6166,11 @@ var Importer = (function() {
 						if( typeof(callback) === 'function' ) {
 							if( err ) return callback(err);
 						
-							result = createOwnerDocument({contents:data, base:base});
+							result = createDocument({contents:data, base:base});
 							callback(null, result);
 						} else {
 							if( err ) throw err;
-							else result = createOwnerDocument({contents:data, base:base});
+							else result = createDocument({contents:data, base:base});
 						}
 					});
 					return result;
@@ -6129,13 +6178,20 @@ var Importer = (function() {
 				async: function(callback) {
 					return Ajax.ajax(options).done(function(err, data) {						
 						if( err ) return callback(err);
-						callback(null, createOwnerDocument({contents:data, base:base}));
+						callback(null, createDocument({contents:data, base:base}));
 					});
 				}
 			};
 		}
 	};
 })();
+
+SelectorBuilder.util.createDocument = Importer.createDocument;
+SelectorBuilder.util.resolveScript = Importer.resolveScript;
+SelectorBuilder.staticfn.newDocument = function() {
+	var doc = Importer.createDocument.apply(this, arguments);
+	return SelectorBuilder(doc);
+};
 
 SelectorBuilder.fn['import'] = function(options, async, callback) {
 	"use strict";
@@ -6180,7 +6236,6 @@ SelectorBuilder.fn['import'] = function(options, async, callback) {
 	if( eval('typeof(Scroller) !== "undefined"') ) addon.Scroller = Scroller;
 	if( eval('typeof(StyleSession) !== "undefined"') ) addon.StyleSession = StyleSession;
 	if( eval('typeof(Template) !== "undefined"') ) addon.Template = Template;
-	if( eval('typeof(EventDispatcher) !== "undefined"') ) addon.EventDispatcher = EventDispatcher;
 	if( eval('typeof(Importer) !== "undefined"') ) addon.Importer = Importer;
 	
 	
@@ -6189,8 +6244,7 @@ SelectorBuilder.fn['import'] = function(options, async, callback) {
 	try {
 		eval('(module && exports && require)');
 		CJS = true;
-	} catch(e) {}
-	
+	} catch(e) {}	
 	
 	// binding to global or regist module system. amd, cjs, traditional
 	var $ = SelectorBuilder(document);
@@ -6198,9 +6252,51 @@ SelectorBuilder.fn['import'] = function(options, async, callback) {
 		define('attrs.dom', function(module) {
 			module.exports = $;
 		});
+		define('animator', function(module) {
+			module.exports = Animator;
+		});
+		define('css-calibrator', function(module) {
+			module.exports = CSS3Calibrator;
+		});
+		define('device', function(module) {
+			module.exports = Device;
+		});
+		define('scroller', function(module) {
+			module.exports = Scroller;
+		});
+		define('template', function(module) {
+			module.exports = Template;
+		});
+		define('style-session', function(module) {
+			module.exports = StyleSession;
+		});
+		define('importor', function(module) {
+			module.exports = Importer;
+		});
 	} else if( typeof(window.define) === 'function' && define.amd ) {
 		define(function() {
 			return $;
+		});
+		define('animator', function(module) {
+			module.exports = Animator;
+		});
+		define('css-calibrator', function(module) {
+			module.exports = CSS3Calibrator;
+		});
+		define('device', function(module) {
+			module.exports = Device;
+		});
+		define('scroller', function(module) {
+			module.exports = Scroller;
+		});
+		define('template', function(module) {
+			module.exports = Template;
+		});
+		define('style-session', function(module) {
+			module.exports = StyleSession;
+		});
+		define('importor', function(module) {
+			module.exports = Importer;
 		});
 	} else if( CJS ) {
 		exports = $;

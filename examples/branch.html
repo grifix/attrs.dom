@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+		<meta name="author" content="joje.attrs@gmail.com">
+		
+		<title>attrs.dom</title>
+
+		<script type="text/javascript" src="../build/attrs.dom.js"></script>
+		
+		<script type="text/javascript">
+			var $ = $ || require('attrs.dom');
+						
+			$.ready(function(e) {
+				console.log('DOM Ready!');
+				
+				// use branch Selector by new document
+				var result = (function($) {
+					$ = $.newDocument('<div id="slot"></div>');
+					
+					console.log('new document', $.document);					
+					$('#slot').html('created from new document');
+					
+					return $('#slot').clone().contents();
+				})($);
+				
+				$('#slot').append(result);
+				
+				// use branch Selector by element
+				(function($) {
+					$ = $.branch('.branch');
+					
+					$($.root).create('div#slot.b');
+					$('#slot').html('created from element branch');
+				})($);
+			});
+		</script>
+	</head>
+	<body>
+		<div id="slot"></div>
+		
+		<div class="branch"></div>
+		<div class="branch"></div>
+	</body>
+</html>

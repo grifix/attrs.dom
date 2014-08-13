@@ -7,7 +7,6 @@
 	if( eval('typeof(Scroller) !== "undefined"') ) addon.Scroller = Scroller;
 	if( eval('typeof(StyleSession) !== "undefined"') ) addon.StyleSession = StyleSession;
 	if( eval('typeof(Template) !== "undefined"') ) addon.Template = Template;
-	if( eval('typeof(EventDispatcher) !== "undefined"') ) addon.EventDispatcher = EventDispatcher;
 	if( eval('typeof(Importer) !== "undefined"') ) addon.Importer = Importer;
 	
 	
@@ -16,8 +15,7 @@
 	try {
 		eval('(module && exports && require)');
 		CJS = true;
-	} catch(e) {}
-	
+	} catch(e) {}	
 	
 	// binding to global or regist module system. amd, cjs, traditional
 	var $ = SelectorBuilder(document);
@@ -25,9 +23,51 @@
 		define('attrs.dom', function(module) {
 			module.exports = $;
 		});
+		define('animator', function(module) {
+			module.exports = Animator;
+		});
+		define('css-calibrator', function(module) {
+			module.exports = CSS3Calibrator;
+		});
+		define('device', function(module) {
+			module.exports = Device;
+		});
+		define('scroller', function(module) {
+			module.exports = Scroller;
+		});
+		define('template', function(module) {
+			module.exports = Template;
+		});
+		define('style-session', function(module) {
+			module.exports = StyleSession;
+		});
+		define('importor', function(module) {
+			module.exports = Importer;
+		});
 	} else if( typeof(window.define) === 'function' && define.amd ) {
 		define(function() {
 			return $;
+		});
+		define('animator', function(module) {
+			module.exports = Animator;
+		});
+		define('css-calibrator', function(module) {
+			module.exports = CSS3Calibrator;
+		});
+		define('device', function(module) {
+			module.exports = Device;
+		});
+		define('scroller', function(module) {
+			module.exports = Scroller;
+		});
+		define('template', function(module) {
+			module.exports = Template;
+		});
+		define('style-session', function(module) {
+			module.exports = StyleSession;
+		});
+		define('importor', function(module) {
+			module.exports = Importer;
 		});
 	} else if( CJS ) {
 		exports = $;

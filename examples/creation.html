@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+		<meta name="author" content="joje.attrs@gmail.com">
+		
+		<title>attrs.dom</title>
+
+		<script type="text/javascript" src="../build/attrs.dom.js"></script>
+		
+		<script type="text/javascript">
+			var $ = $ || require('attrs.dom');
+						
+			$.ready(function(e) {
+				console.log('DOM Ready!');
+				
+				$.html('<img src="404.jpg" />');
+				$.create('img').attr('src', '404-2.jpg');
+				$.create('img').attr('src', 'partials/keroro.jpg').appendTo('#slot');
+				$.create('div.created').html('text<p>paragraph</p>text').appendTo('#slot');
+				$.create('tr').html('<td>this is tr by $.create</td>').appendTo('#slot');
+				$.html('<tr><td>this is tr by $.html</td></tr>').appendTo('#slot');
+				
+				$('#slot').create('div.item').html('creation single');
+				$('#slot').create('div.item', 2).html('creation by number');
+				$('#slot').create('div.item', [1,2]).html('creation by data');
+				$('#slot').create('div.item', [1,2]).html(function(d) {
+					$(this).id('item-' + d);
+					return 'creation by array with function ' + d;
+				});
+			});
+		</script>
+	</head>
+	<body>
+		<div id="slot"></div>
+	</body>
+</html>
+

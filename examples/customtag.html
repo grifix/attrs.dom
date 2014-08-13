@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+		<meta name="author" content="joje.attrs@gmail.com">
+		
+		<title>attrs.dom</title>
+
+		<script type="text/javascript" src="../build/attrs.dom.js"></script>
+		
+		<script type="text/javascript">
+			var $ = $ || require('attrs.dom');
+			
+			(function() {
+				"use strict";
+				
+				var MyElement = Object.create(HTMLElement.prototype);
+			
+				MyElement.createdCallback = function() {
+					$(this).on('created staged unstaged removed changed.attrs', function(e) {
+						console.log(e.type, e);
+					});
+				};
+				
+				MyElement.enteredViewCallback = function() {
+					console.log('entered view');
+				};
+				
+				MyElement.leftViewCallback = function() {
+					console.log('left view');
+				};
+				
+				MyElement.attributeChangedCallback = function(name, oldValue, newValue) {
+					console.log('attribute changed', name, oldValue, newValue);
+				};
+				
+				document.registerElement('x-custom', {prototype:MyElement});
+			
+				//$.tag('custom', MyElement);
+			})();
+			
+			/*
+			 커스텀 태그를 등록하면,
+				 1. DOMContentLoaded 시, 자동으로 해당 태그를 찾아서 초기화
+				 2. document.createElement 을 override 하여 해당 태그 생성시 자동으로 초기화
+				 3. innerHTML 등으로 등록된 태그의 경우, MutationObserver 를 통해 발견시 초기화
+				 4. getElementBy.. querySelector.. 를 사용시 자동으로 찾아서 초기화한다.
+			*/
+		</script>
+	</head>
+	<body>
+		<custom></custom>
+	</body>
+</html>
+
