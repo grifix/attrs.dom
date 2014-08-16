@@ -3,7 +3,7 @@
  * 
  * @author: joje (https://github.com/joje6)
  * @version: 0.1.0
- * @date: 2014-08-16 18:53:53
+ * @date: 2014-08-16 19:2:36
 */
 
 /*!
@@ -7361,9 +7361,11 @@ var Items = (function() {
 			return this;
 		}
 		
+		var removed = [];
 		if( append !== true ) {
 			var current = this.slice();
 			for(var i=current.length; i >= 0;i--) {
+				removed.push(current[i]);
 				this.remove(i);
 			}
 		}
@@ -7375,6 +7377,12 @@ var Items = (function() {
 				if( typeof(index) === 'number' ) index++;
 			}
 		}
+		
+		this.el.fire('items', {
+			items: this.slice(),
+			added: items,
+			removed: removed
+		});
 		
 		return this;
 	};
@@ -7576,7 +7584,7 @@ var Items = (function() {
 		return this.each(function() {
 			var items = this.items;
 			if( !items ) items = this.items = new Items($(this));
-			items.add(item, index);
+			items.merge(item, true, index);
 		});
 	};
 	
