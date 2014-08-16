@@ -285,3 +285,15 @@ var AnimationGroup = (function() {
 	fn.prev = function(callback) {
 	};*/
 })();
+
+(function() {
+	var fn = SelectorBuilder.fn;
+	
+	fn.animate = function(options, callback) {
+		return new AnimationGroup(this, options, this, this).run(callback).out();
+	};
+
+	fn.animator = function(options, scope) {
+		return new AnimationGroup(this, options, scope || this, this);
+	};
+})();

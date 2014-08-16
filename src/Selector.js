@@ -32,6 +32,31 @@ var SelectorBuilder = (function() {
 			return true;
 		};
 	}
+	
+	// instantiatable NodeList
+	function XNodeList(array) {
+		for(var i=0; i < array.length;i++) {
+			this[i] = array[i];
+		}
+		
+		if( Object.defineProperty ) {
+			Object.defineProperty(this, 'length', {
+				enumerable: false,
+				configurable: false,
+				writable: false,
+				value: array.length
+			});
+		}
+		
+		this.length = array.length;
+	}
+	XNodeList.prototype = document.querySelectorAll('.sulmairungeisslriga') || [];
+	XNodeList.prototype.item = function(index) {
+		return this[index];
+	};
+	
+	if( !window.NodeList ) window.NodeList = XNodeList;
+	
 
 	// common functions
 	function isNode(o){
@@ -333,6 +358,75 @@ var SelectorBuilder = (function() {
 		return key;
 	}
 	
+	function normalizeContentType(mimeType, url) {
+		if( mimeType && typeof(mimeType) === 'string' ) {
+			mimeType = mimeType.split(';')[0];
+		
+			if( ~mimeType.indexOf('javascript') ) return 'js';
+			else if( ~mimeType.indexOf('html') ) return 'html';
+			else if( ~mimeType.indexOf('json') ) return 'json';
+			else if( ~mimeType.indexOf('xml') ) return 'xml';
+			else if( ~mimeType.indexOf('css') ) return 'css';
+			else return mimeType;
+		} else if( url && typeof(url) === 'string' ) {
+			var ext = Path.ext(url).toLowerCase();
+			if( ext === 'htm') return 'html';
+			else return ext;
+		} else {
+			return console.error('illegal parameter', mimeType, url);
+		}
+	}	
+
+	function wrappingstringevent(script) {
+		return function(e) {
+			return eval(script);
+		};
+	}
+	
+	function evaljson(script) {
+		var fn;
+		eval('fn = function() { return ' + script + ';}');
+		return fn();
+	}
+
+	function mixselector(baseAccessor, selector) {
+		// base accessor : .app-x.application
+		// selector : div#id.a.b.c[name="name"]
+		// result = div#id.app-x.application.a.b.c[name="name"]			
+		selector = selector || '*';
+		if( selector === '*' ) return baseAccessor;
+		else if( !~selector.indexOf('.') ) return selector + baseAccessor;
+	
+		var h = selector.substring(0, selector.indexOf('.'));
+		var t = selector.substring(selector.indexOf('.'));
+		return h + baseAccessor + t;
+	}
+	
+	function findChild(method, selector, arr) {
+		if( typeof(selector) === 'number' ) {
+			var c = this[method][selector];
+			if( c ) arr.push(c);
+		} else if( typeof(selector) === 'string' && !selector.startsWith('arg:') ) {	// find by selector
+			var children = this[method];
+			for(var i=0; i < children.length; i++) {
+				var el = children[i];
+				if( match(el, selector) ) arr.push(el);
+			}
+		} else if( selector ) {	// find by element's arg data
+			if( selector.startsWith('arg:') ) selector = selector.substring(4);
+			var children = this[method];
+			for(var i=0; i < children.length; i++) {
+				var el = children[i];
+				if( data.call(el, 'arg') === selector ) arr.push(el);
+			}
+		} else {	// all children
+			merge.call(arr, this[method]);	
+		}
+	}
+	
+	
+	
+	
 	var Commons = function Commons() {};
 	Commons.prototype = new Array();
 	var commons = new Commons();
@@ -351,6 +445,8 @@ var SelectorBuilder = (function() {
 	
 		var __root__ = {};
 		function Selector(selector, criteria, single) {
+			if( selector === ':root' ) selector = Selector.root;
+			
 			if( selector && selector.nodeType === 9 ) return SelectorBuilder(selector);
 			else if( selector instanceof Selector ) return selector;
 			else if( selector === document || selector === window ) return Selector;
@@ -361,21 +457,28 @@ var SelectorBuilder = (function() {
 		var fns = Selection.prototype = new Selector(__root__);
 		
 		Selector.document = fns.document = document;
-		Selector.root = fns.root = root || document;
+		Selector.root = fns.root = root || document.documentElement;
 		Selector.fn = commons;
 		Selector.plugins = fns;
 		Selector.plugins.$ = Selector;
 		Selector.builder = SelectorBuilder;
 		Selector.branch = function(doc) {
-			if( typeof(doc) === 'string' ) doc = document.querySelector(doc);
-			
+			if( !doc ) return SelectorBuilder(document);	
 			if( doc && doc.nodeType === 9 ) return SelectorBuilder(doc);
 			
-			if( !isElement(doc) ) return console.error('illegal argument', doc);
+			if( typeof(doc) === 'string' ) {
+				var els = document.querySelectorAll(doc);
+				if( doc.length === 1 && isElement(doc[0]) ) doc = doc[0];
+				else doc = $(doc);
+			}
 			
-			var root = doc;
-			var doc = doc.ownerDocument;
-			return SelectorBuilder(doc, root);
+			if( isElement(doc) ) {
+				return SelectorBuilder(doc.ownerDocument, doc);
+			} else if( doc instanceof Commons ) {
+				return SelectorBuilder(document, doc);
+			} else {
+				return console.error('illegal argument', doc);
+			}
 		};
 		
 		Selector.create = function() {
@@ -428,6 +531,8 @@ var SelectorBuilder = (function() {
 		document.addEventListener('DOMContentLoaded', fn);
 		return this;
 	};
+	
+	// want use $.fn
 	SelectorBuilder.staticfn = {
 		refresh: function() {
 			var staticfn = SelectorBuilder.staticfn;
@@ -437,9 +542,13 @@ var SelectorBuilder = (function() {
 				}	
 			});
 		}
-	};	// want use $.fn
-	SelectorBuilder.addon = {};		// sub addon classes, $.addon.fn
-	SelectorBuilder.util = {		// util, $.util.fn
+	};
+	
+	// sub addon classes, $.addon.fn
+	SelectorBuilder.addon = {};
+	
+	// util, $.util.fn
+	SelectorBuilder.util = {
 		merge: merge,
 		data: data,
 		isNode: isNode,
@@ -457,7 +566,12 @@ var SelectorBuilder = (function() {
 		isShowing: isShowing,
 		computed: computed,
 		boundary: boundary,
-		camelcase: camelcase
+		camelcase: camelcase,
+		normalizeContentType: normalizeContentType,
+		mixselector: mixselector,
+		evaljson: evaljson,
+		wrappingstringevent: wrappingstringevent,
+		findChild: findChild
 	};
 	
 	// setup essential functions
@@ -465,7 +579,7 @@ var SelectorBuilder = (function() {
 		"use strict";
 		
 		var fn = commons;
-		
+				
 		fn.refresh = function(selector, criteria, single) {			
 			var document = this.document;
 			var root = this.root;
@@ -563,9 +677,17 @@ var SelectorBuilder = (function() {
 			if( typeof(key) !== 'string' ) return console.error('invalid key', key);
 		
 			var self = this;
+			var $ = this.$;
 			return this.each(function() {
-				var v = resolve.call(this, value);
-				data.call(this, key, v);
+				//var v = resolve.call(this, value);
+				var oldValue = data.call(this, key);
+				data.call(this, key, value);
+				
+				$(this).fire('data', {
+					key: key,
+					value: value,
+					oldValue: oldValue
+				});
 			});
 		};
 	
@@ -624,28 +746,6 @@ var SelectorBuilder = (function() {
 	
 		var fn = commons;
 	
-		function findChild(method, selector, arr) {
-			if( typeof(selector) === 'number' ) {
-				var c = this[method][selector];
-				if( c ) arr.push(c);
-			} else if( typeof(selector) === 'string' && !selector.startsWith('arg:') ) {	// find by selector
-				var children = this[method];
-				for(var i=0; i < children.length; i++) {
-					var el = children[i];
-					if( match(el, selector) ) arr.push(el);
-				}
-			} else if( selector ) {	// find by element's arg data
-				if( selector.startsWith('arg:') ) selector = selector.substring(4);
-				var children = this[method];
-				for(var i=0; i < children.length; i++) {
-					var el = children[i];
-					if( data.call(el, 'arg') === selector ) arr.push(el);
-				}
-			} else {	// all children
-				merge.call(arr, this[method]);	
-			}
-		}
-	
 		// function template for node attributes
 		function type1(attr, arg) {
 			if( !arg.length ) {
@@ -698,6 +798,15 @@ var SelectorBuilder = (function() {
 		fn.id = function(id) {
 			return type1.call(this, 'id', arguments);
 		};
+		
+		fn.tag = function() {
+			var arr = [];
+			this.each(function() {
+				var tag = this.tagName && this.tagName.toLowerCase();	
+				arr.push(tag);
+			});
+			return array_return(arr);
+		};
 	
 		fn.value = fn.val = function(value) {
 			return type1.call(this, 'value', arguments);
@@ -727,13 +836,17 @@ var SelectorBuilder = (function() {
 	
 		fn.select = function() {
 			return this.each(function() {
-				this.selected = true;	
+				this.selected = true;
+				
+				$(this).fire('selected');
 			});
 		};
 	
-		fn.unselect = function() {
+		fn.deselect = function() {
 			return this.each(function() {
-				this.selected = false;	
+				this.selected = false;
+				
+				$(this).fire('deselected');
 			});
 		};
 	
@@ -918,7 +1031,7 @@ var SelectorBuilder = (function() {
 			return this.classes(s, true);
 		};
 		
-		fn.has = fn.hasClass = function(s) {
+		fn.hc = fn.hasClass = function(s) {
 			if( !s || typeof(s) !== 'string' ) return s;
 			s = s.split(' ');
 		
@@ -933,20 +1046,6 @@ var SelectorBuilder = (function() {
 			return !hasnot;
 		};
 	
-		fn.is = function(s) {
-			if( !s || typeof(s) !== 'string' ) return false;
-			var hasnot = false;
-			this.each(function() {
-				if( !match(this, s) ) hasnot = true;
-			});
-		
-			return !hasnot;
-		};
-	
-		fn.not = function(s) {
-			return !this.is(s);
-		};
-	
 		fn.rc = fn.removeClass = function(s) {
 			return this.classes(s, false);
 		};
@@ -957,7 +1056,90 @@ var SelectorBuilder = (function() {
 				el.className = '';
 				el.removeAttribute('class');
 			});
-		};	
+		};
+		
+		// evaluation
+		fn.is = function(selector, or) {
+			if( !selector || typeof(selector) !== 'string' ) return false;
+			
+			var selectors = selector.split(',');
+			if( !this.length || !selectors.length ) return false;
+				
+			if( or === true ) {
+				var isnt = false;
+				this.each(function() {
+					var contains = false;
+					for(var i=0; i < selectors.length;i++) {
+						var s = selectors[i].trim();
+						if( s && match(this, selectors[i].trim()) ) contains = true;
+					}
+					
+					if( contains === false ) isnt = true;
+				});
+				return !isnt;
+			} else {
+				var isnt = false;
+				this.each(function() {
+					for(var i=0; i < selectors.length;i++) {
+						var s = selectors[i].trim();
+						if( !s || !match(this, selectors[i].trim()) ) isnt = true;
+					}
+				});
+				return !isnt;
+			}
+			
+			return false;
+		};
+	
+		fn.not = function(selector) {
+			return !this.is(selector);
+		};
+		
+		fn.contains = function(child) {
+			if( !child ) return false;
+			
+			var contains = false;
+			if( typeof(child) === 'string' ) {
+				var has = false;
+				var selectors = child.split(',');
+				this.each(function() {
+					for(var i=0; i < selectors.length;i++) {
+						var s = selectors[i].trim();
+						if( s && match(this, s) ) {
+							has = true;
+							return false;
+						}
+					}
+				});		
+				return has;
+			} else if( isNode(child) ) {
+				this.each(function() {
+					if( this === child ) contains = true;
+				});
+			} else if( child instanceof Commons ) {
+				this.each(function() {
+					// TODO: 미구현
+				});
+			}
+			
+			return contains;
+		};
+		
+		fn.hasChild = function(child) {
+			if( !child ) return false;
+						
+			var contains = false;
+			this.each(function() {
+				if( typeof(child) === 'string' ) {
+					var result = this.querySelector(child);
+					if( result ) contains = true;
+				}
+				
+				if( this.contains && this.contains(child) ) contains = true;
+			});
+			
+			return contains;
+		};
 	
 		// find parent & children
 		fn.parent = function(cnt) {
@@ -982,6 +1164,38 @@ var SelectorBuilder = (function() {
 		fn.one = function(selector) {
 			if( !arguments.length ) selector = '*';
 			return this.$(selector, this, true).owner(this);
+		};
+		
+		fn.querySelectorAll = function(selector) {
+			var arr = [];
+			this.each(function() {
+				if( $(this).is(selector, true) ) arr.push(this);
+				var result = this.querySelectorAll(selector);
+				if( result ) {
+					for(var i=0; i < result.length;i++) {
+						arr.push(result[i]);
+					}
+				}
+			});
+			
+			return new XNodeList(arr);
+		};
+		
+		fn.querySelector = function(selector) {
+			var arr = [];
+			this.each(function() {
+				if( $(this).is(selector) ) {
+					arr.push(this);
+					return false;
+				}
+				var result = this.querySelector(selector);
+				if( result ) {
+					arr.push(result);
+					return false;
+				}
+			});
+			
+			return arr[0];
 		};
 	
 		fn.children = function(selector) {
@@ -1075,21 +1289,6 @@ var SelectorBuilder = (function() {
 			});
 		};
 	
-		fn.contains = function(child) {
-			var contains = false;
-			this.each(function() {
-				var self = this;
-				// TODO: 교집합을 구하는 것으로 수정해야 한다. child 가 모두 포함되어 있어야 contains 로 인정
-				if( child instanceof Commons ) return child.each(function() {
-					if( self !== this && self.contains(this) ) contains = true;
-				});
-
-				if( typeof(child) === 'string' ) child = this.querySelector(child);
-				if( this !== child && this.contains(child) ) contains = true;
-			});		
-			return contains;
-		};
-	
 		fn.first = function() {
 			return this.$(this[0]).owner(this);
 		};
@@ -1100,6 +1299,46 @@ var SelectorBuilder = (function() {
 	
 		fn.at = function(index) {
 			return this.$(this[index]).owner(this);
+		};
+		
+		// save & restore
+		fn.save = function(name) {
+			return this.each(function() {
+				var attrs = this.attributes;
+				if( !attrs ) return;
+				var o = {};
+				for(var i= attrs.length-1; i>=0; i--) {
+					o[attrs[i].name] = attrs[i].value;
+				}
+			
+				var o = {
+					html: this.innerHTML,
+					attrs: o
+				};
+			
+				data.call(this, 'save.' + name, o);
+				data.call(this, 'save.#last', o);
+			});
+		};
+	
+		fn.restore = function(name) {
+			return this.each(function() {
+				var saved = name ? data.call(this, 'save.' + name) : data.call(this, 'save.#last');
+			
+				if( !saved ) return ~name.indexOf('#') ? null : console.warn('no saved status', name || '');			
+				this.innerHTML = saved.html || '';
+			
+				// remove current attributes
+				var attrs = this.attributes;
+				for(var i= attrs.length-1; i>=0; i--) {
+					this.removeAttribute(attrs[i].name);
+				}
+			
+				attrs = saved.attrs;
+				for(var k in attrs) {
+					this.setAttribute(k, attrs[k]);
+				}
+			});
 		};
 		
 		// creation
@@ -1119,6 +1358,27 @@ var SelectorBuilder = (function() {
 			});
 			return $(arr).owner(this);
 		};
+		
+		fn.update = function(accessor, args, fn) {
+			var result = this.find(accessor);
+			if( !result.length ) return this.create.apply(this, arguments);
+			
+			var nothing = {};
+			if( !args ) args = [nothing];
+			
+			var arr = [];
+			if( isArrayType(args) ) {
+				for(var i=0; i < args.length; i++) {
+					var el = result[i];
+					if( isElement(el) ) {
+						if( args[i] !== nothing ) $(el).arg(args[i]);
+						arr.push(el);
+						if( typeof(fn) === 'function' ) fn.call(this, $(el).arg());
+					}
+				}
+			}
+			return $(arr).owner(this);			
+		};
 	
 		fn.create = function(accessor, args, fn) {
 			if( typeof(accessor) !== 'string' ) return console.error('invalid accessor', accessor);
@@ -1126,11 +1386,9 @@ var SelectorBuilder = (function() {
 			if( arguments.length === 2 && typeof(args) === 'function' ) {
 				fn = args;
 				args = [null];
-			} else if( arguments.length === 1 ) {
-				args = [null];
-			} else if( !args ) {
-				args = [];
 			}
+			
+			if( !args ) args = [null];
 		
 			if( typeof(args) === 'number') args = new Array(args);
 			if( typeof(args) === 'string') args = [args];
@@ -1173,58 +1431,22 @@ var SelectorBuilder = (function() {
 			
 			this.each(function() {
 				for(var i=0, len=args.length; i < len; i++) {
-					var el = $(create(accessor));				
+					var el = $(create(accessor));
 					$(this).append(el);
 					el.data('arg', args[i]).save('#create');
 				
 					el.each(function() {
 						arr.push(this);
 					});
+					
+					if( typeof(fn) === 'function' ) fn.call(this, el.arg());
 				}
 			});
 		
 			return $(arr).owner(this);
 		};
-	
-		fn.save = function(name) {
-			return this.each(function() {
-				var attrs = this.attributes;
-				if( !attrs ) return;
-				var o = {};
-				for(var i= attrs.length-1; i>=0; i--) {
-					o[attrs[i].name] = attrs[i].value;
-				}
-			
-				var o = {
-					html: this.innerHTML,
-					attrs: o
-				};
-			
-				data.call(this, 'save.' + name, o);
-				data.call(this, 'save.#last', o);
-			});
-		};
-	
-		fn.restore = function(name) {
-			return this.each(function() {
-				var saved = name ? data.call(this, 'save.' + name) : data.call(this, 'save.#last');
-			
-				if( !saved ) return ~name.indexOf('#') ? null : console.warn('no saved status', name || '');			
-				this.innerHTML = saved.html || '';
-			
-				// remove current attributes
-				var attrs = this.attributes;
-				for(var i= attrs.length-1; i>=0; i--) {
-					this.removeAttribute(attrs[i].name);
-				}
-			
-				attrs = saved.attrs;
-				for(var k in attrs) {
-					this.setAttribute(k, attrs[k]);
-				}
-			});
-		};
-	
+		
+		// insertion
 		fn.append = function(items) {
 			if( !items ) return console.error('items was null', items);
 				
@@ -1374,19 +1596,20 @@ var SelectorBuilder = (function() {
 	
 	
 		// events
+		var mutationevents = ['attributes', 'added', 'removed', 'textdata', 'attached', 'detached', 'contents'];
 		fn.on = function(types, fn, capture) {
 			if( typeof(types) !== 'string' ) return console.error('invalid event type', types);
 			if( typeof(fn) !== 'function' ) return console.error('invalid fn', fn);
 	
 			capture = (capture===true) ? true : false;
 			types = types.split(' ');
-	
+			
 			return this.each(function() {
-				var el = this;
-		
 				for(var i=0; i < types.length; i++) {
-					el.addEventListener(types[i], fn, capture);
-				}			
+					var type = types[i];
+					if( ~mutationevents.indexOf(type) ) $(this).mutationsupport();
+					this.addEventListener(type, fn, capture);
+				}
 			});
 		};
 	
@@ -1397,11 +1620,9 @@ var SelectorBuilder = (function() {
 			capture = (capture===true) ? true : false;
 			types = types.split(' ');
 	
-			return this.each(function() {			
-				var el = this;
-		
+			return this.each(function() {
 				for(var i=0; i < types.length; i++) {
-					el.removeEventListener(types[i], fn, capture);
+					this.removeEventListener(types[i], fn, capture);
 				}
 			});
 		};
@@ -1461,6 +1682,68 @@ var SelectorBuilder = (function() {
 			
 			return array_return(arge);
 		};
+		
+		// action & href shim		
+		fn.action = function(href, e) {
+			return this.each(function() {
+				if( !isElement(this) ) return;
+				
+				var el = $(this);
+				if( !href ) href = el.attr('href');
+				if( !href ) return;
+						
+				if( href.toLowerCase().trim().startsWith('javascript:') ) {
+					wrappingstringevent(href.trim().substring(11)).call(this, e);
+				} else {
+					if( href.startsWith('#') || !target ) {
+						location.href = href;
+					} else {
+						//TODO: target 이 있을경우...어떻게 해야 하나.
+						location.href = href;
+					}
+				}
+			});
+		};
+		
+		fn.href = function(href) {
+			if( !arguments.length ) {
+				var arr = [];
+				this.each(function() {
+					var href = this.getAttribute && this.getAttribute('href');
+					arr.push(href);
+				});				
+				return array_return(arr);
+			}
+			
+			return this.each(function() {
+				var el = $(this);
+				
+				var tag = el.tag();
+				if( !tag ) return;
+				
+				if( !href ) el.attr('href', false);
+				else el.attr('href', href);
+								
+				href = el.attr('href');
+				if( tag !== 'a' ) {
+					var listener = el.data('href_listener');
+					
+					if( !href ) {
+						if( listener ) el.off('click', listener);
+					} else {
+						if( !listener ) {
+							listener = function(e) {
+								var href = this.getAttribute('href');
+								if( href ) el.action(href, e);
+							};
+						}
+						
+						el.on('click', listener);
+					}
+				}
+			});
+		};
+		
 	
 		// view handling
 		fn.hide = function(options, fn) {
@@ -1761,6 +2044,348 @@ var SelectorBuilder = (function() {
 				})(name);
 			});
 		})();
+		
+		
+		fn.routes = function(routes) {
+			if( !arguments.length ) {
+				var arr = [];
+				this.each(function() {
+					if( !isElement(this) ) return arr.push(null);
+					var routes = $(this).data('routes');
+					arr.push(routes);					
+				});
+				return array_return(arr);
+			}
+			
+			return this.each(function() {
+				if( !isElement(this) ) return;
+				
+				if( routes === false ) {
+					routes = $(this).data('routes');
+					if( !routes ) return;
+				
+					for(var k in routes) {
+						$(this).route(k, false);
+					}
+				} else if( typeof(routes) === 'object' ) {
+					for(var k in routes) {
+						$(this).route(k, routes[k]);
+					}
+				} else {
+					return console.error('illegal arguments', routes);
+				}
+				return this;
+			});
+		};
+		
+		fn.route = function(hash, fn) {
+			if( !arguments.length ) return console.error('missing arguments:hash');
+			if( arguments.length === 1 ) {
+				var arr = [];
+				this.each(function() {
+					if( !isElement(this) ) return arr.push(null);
+					var routes = $(this).data('routes');
+					if( !routes ) return arr.push(null);
+					var route = routes[hash];
+					arr.push(route);
+				});
+				return array_return(arr);
+			}
+			
+			return this.each(function() {
+				if( !isElement(this) ) return;
+				
+				var el = $(this);
+				if( typeof(hash) === 'string' && fn === false ) {
+					var routes = el.data('routes');
+					if( routes && routes[hash] ) {				
+						routes[hash] = null;
+						try { delete routes[hash]; } catch(e) {}				
+						el.fire('route.removed', {hash:hash});
+					}
+				} else if( typeof(hash) === 'string' && typeof(fn) === 'function' ) {
+					var routes = el.data('routes');
+					if( !routes ) {
+						routes = {};
+						el.data('routes', routes);
+					}
+
+					routes[hash] = fn;
+					
+					var listener = el.data('routes.listener');
+					if( !listener ) {
+						listener = function(e) {
+							var hash = e.hash;
+							if( hash === '' ) hash = '@default';
+							
+							var current = routes[hash];
+							var notfound = routes['@notfound'];
+							
+							if( !current && !notfound ) {
+								return;
+							}
+							
+							var init = routes['@init'];
+							var changed = routes['@changed'];
+							var before = routes['@before'];
+							var after = routes['@after'];
+							var def = routes['@default'];
+							var notfound = routes['@notfound'];
+						
+							if( !this._router_inited && init ) init.call(this, e);
+							else if( changed ) changed.call(this, e);
+						
+							if( !current ) {
+								if( !this._router_inited ) current = current || def;
+								else current = current || notfound;
+							}
+						
+							if( e.hash === '' ) current = def;
+						
+							this._router_inited = true;
+						
+							if( before ) before.call(this, e);
+							if( current ) current.call(this, e);
+							if( after ) after.call(this, e);
+						};
+						
+						el.data('routes.listener', listener);
+						el.on('route', listener);
+					}
+				
+					el.fire('route.added', {hash:hash, handler:fn});
+				} else {
+					return console.error('illegal arguments', hash, fn);
+				}
+			});
+		};
+		
+		fn.fireroute = function(hash) {
+			if( !arguments.length ) hash = location.hash || '';
+			if( hash.startsWith('#') ) hash = hash.substring(1);
+			
+			var $ = this.$;
+			this.visit(function() {
+				if( !isElement(this) ) return;
+				var el = $(this);
+				var e = el.fire('route', {
+					hash: hash
+				});
+				if( e.cancelBubble === true ) return false;
+			}, true);
+			return this;
+		};
+		
+		// mutation observe
+		if( eval('typeof(MutationObserver) !== "undefined"') ) {
+			var create = function(target, fn, options) {
+				if( !isElement(target) ) return console.error('illegal target(element)', target);
+				if( typeof(fn) !== 'function' ) return console.error('illegal fn(function)', fn);
+			
+				// MutationObserver setup for detect DOM node changes.
+				// if browser doesn't support DOM3 MutationObeserver, use MutationObeserver shim (https://github.com/megawac/MutationObserver.js)
+				var observer = new MutationObserver(function(mutations){
+					mutations.forEach(function(mutation) {
+						fn.call(target, mutation);
+					});
+			    });
+
+				observer.observe(target, options);			
+				return observer;
+			};
+						
+			fn.mutationsupport = function(remove) {
+				var $ = this.$;
+				
+				var options = {
+					childList: true,
+					attributes: true,
+					characterData: true,
+					attributeOldValue: true,
+					characterDataOldValue: true,
+					attributeFilter: true,
+					fn: function(e) {
+						var type = e.type;
+						var target = e.target;
+				
+						if( type === 'childList' ) {
+							var added = e.addedNodes;
+							var removed = e.removedNodes;				
+					
+							if( removed && removed.length ) {
+								for(var i=0; i < removed.length; i++) {
+									$(removed[i]).fire('detached', {
+										from: target,
+										mutation: e
+									});
+								}
+						
+								$(target).fire('removed', {
+									removed: removed,
+									mutation: e
+								});
+							}
+	
+							if( added && added.length ) {
+								for(var i=0; i < added.length; i++) {
+									$(added[i]).fire('attached', {
+										to: target,
+										mutation: e
+									});
+								}
+						
+								$(target).fire('added', {
+									added: added,
+									mutation: e
+								});
+							}
+					
+							$(target).fire('contents', {
+								removed: removed,
+								added: added,
+								mutation: e
+							});
+						} else if( type === 'attributes' ) {
+							var name = e.attributeName;
+							var old = e.oldValue;
+							var value = target.getAttribute(name);
+					
+							$(target).fire('attributes', {
+								attributeName: name,
+								oldValue: old,
+								value: value,
+								mutation: e
+							});
+						} else if( type === 'characterData' ) {
+							var old = e.oldValue;
+							var value = e.target.nodeValue;
+					
+							$(target).fire('textdata', {
+								oldValue: old,
+								value: value,
+								mutation: e
+							});
+						}
+					}
+				};
+				
+				return this.each(function() {
+					if( !isNode(this) ) return;
+					var el = $(this);
+					var observer = el.data('observer');
+					
+					if( remove === false ) {
+						if( observer ) observer.disconnect();
+						el.data('observer', false);
+					} else if( !observer ) {
+						observer = create(this, options.fn, options);
+						el.data('observer', observer);
+					}
+				});
+			};
+		
+			fn.observe = function(options) {
+				if( typeof(options) !== 'object' ) return console.error('illegal argument', options);
+				if( typeof(options.fn) !== 'function' ) return console.error('options.fn(function) required', options);
+			
+				var $ = this.$;
+				return this.each(function() {
+					if( !isNode(this) ) return;
+					var el = $(this);
+					var observer = el.data('observer.custom');
+					if( observer ) observer.disconnect();
+					
+					if( options === false ) {
+						el.data('observer.custom', false);
+					} else {		
+						observer = create(this, options.fn, options);
+						el.data('observer.custom', observer);
+					}
+				});
+			};
+		
+			SelectorBuilder.ready(function() {
+				var $ = SelectorBuilder(document);
+				$(document.documentElement).observe({
+					subtree: true,
+				    childList: true,
+					fn: function(e) {
+						if( e.type === 'childList' ) {
+							var target = e.target;
+							var added = e.addedNodes;
+							var removed = e.removedNodes;				
+							
+							if( removed ) {
+								for(var i=0; i < removed.length; i++) {
+									$(removed[i]).fire('unstaged', {
+										from: target
+									});
+								}
+							}
+			
+							if( added ) {
+								for(var i=0; i < added.length; i++) {
+									$(added[i]).fire('staged', {
+										to: target
+									});
+								}
+							}
+						}
+					}
+				});
+			});
+		}
+		
+
+		// load & loader
+		var Path = require('path');
+		var Ajax = require('ajax');
+		fn.loader = function(fn) {
+			if( typeof(fn) !== 'function' ) return console.error('illegal argument', fn);
+			
+			var $ = this.$;
+			return this.each(function() {
+				var el = $(this);
+				el.data('loader', fn);
+			});
+		};
+		
+		fn.load = function(options, fn) {
+			if( typeof(options) === 'string' ) options = {url:options};
+			
+			options.url = Path.join(this.document.URL || location.href, options.url);
+			options.sync = false;
+			options.cache = true;
+			
+			var $ = this.$;
+			return this.each(function() {
+				var el = $(this);
+				Ajax.ajax(options).done(function(err, data, xhr) {
+					if( err && typeof(fn) === 'function' ) return fn.apply(el[0], [err, data]);
+					
+					var contentType = normalizeContentType(xhr.getResponseHeader('content-type'), options.url);
+					
+					var loader = el.data('loader');
+					if( typeof(fn || loader) === 'function' ) {
+						(fn || loader).apply(el[0], [err, data, contentType, options.url, xhr]);
+					}
+					
+					if( err ) {
+						el.fire('loaderror', {
+							error: err,
+							xhr: xhr
+						});
+					} else {
+						el.fire('load', {
+							url: options.url,
+							data: data,
+							contentType: contentType,
+							xhr: xhr
+						});
+					}
+				});
+			});
+		};
 	})();
 	
 	return SelectorBuilder;

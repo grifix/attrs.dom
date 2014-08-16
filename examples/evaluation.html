@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+		<meta name="author" content="joje.attrs@gmail.com">
+		
+		<title>evaluation</title>
+		<script type="text/javascript" src="../build/attrs.dom.js"></script>
+		<script type="text/javascript">
+			var $ = require('attrs.dom');
+
+			$.ready(function(e) {
+				console.log('DOM Ready!');
+				
+				console.log('$(.item).contains(.a)', $('.item').contains('.a'));
+				console.log('$(.item).contains(.d)', $('.item').contains('.d'));
+				console.log('$(.item).contains(.a, .b)', $('.item').contains('.a, .b'));
+				console.log('$(.item).contains(.a, .b, .c)', $('.item').contains('.a, .b, .c'));
+				console.log('$(.item).contains(.a, .b, .c, .d)', $('.item').contains('.a, .b, .c, .d'));
+				console.log('$(.item).contains(.item.a))', $('.item').contains('.item.a'));
+				console.log('$(.item).contains(.item.d))', $('.item').contains('.item.d'));
+				console.log('$(.item).contains(null))', $('.item').contains(null));
+				
+				console.log('$(.item).is(.item)', $('.item').is('.item'));
+				console.log('$(.item).is(.a)', $('.item').is('.a'));
+				console.log('$(.item).is(.item, .a)', $('.item').is('.item, .a'));
+				console.log('$(.item).is(.item, .a, true)', $('.item').is('.item, .a', true));
+				console.log('$(.item).is(.item, .d, true)', $('.item').is('.item, .d', true));
+				console.log('$(.item).is(.e, .d, true)', $('.item').is('.e, .d', true));
+				
+				console.log('$(.item).not(.item)', $('.item').not('.item'));
+				console.log('$(.item).not(.a)', $('.item').not('.a'));
+				
+				console.log('$(.item).hasChild(.a)', $('.item').hasChild('.a'));
+				console.log('$(.item).hasChild(a)', $('.item').hasChild('a'));
+			});
+		</script>
+	</head>
+	<body>
+		<div id="slot">
+			<div class="item a"><a>anchor</a></div>
+			<div class="item b"><a>anchor</a></div>
+			<div class="item c"><a>anchor</a></div>
+		</div>
+	</body>
+</html>
+

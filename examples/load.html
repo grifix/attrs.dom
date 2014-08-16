@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+		<meta name="author" content="joje.attrs@gmail.com">
+		
+		<title>import</title>
+		<script type="text/javascript" src="../build/attrs.dom.js"></script>
+		<script type="text/javascript">
+			var $ = require('attrs.dom');
+
+			$.ready(function(e) {
+				console.log('DOM Ready!');
+				
+				// load catch by event listener
+				$('pre').on('load', function(e) {
+					console.log('loaded', e);
+					
+					$(this).html('loaded!\n' + JSON.stringify(e.data, null, '\t'));
+				});
+				
+				$('pre').on('loaderror', function(e) {
+					console.log('loaderror', e);
+					
+					$(this).html('loaderror!\n' + JSON.stringify(e.error, null, '\t'));
+				});
+				
+				$('#slot').load('partials/json.json');
+				$('#slot2').load('partials/404.json');
+				
+				$('#slot').loader(function(err, data, contentType, url, xhr) {
+					console.debug('load catch by loader', data);					
+				});
+				$('#slot').load('partials/json.json');
+				
+				$('#slot').load('partials/json.json', function(err, data, contentType, url, xhr) {
+					console.debug('load catch by instant loader', data);		
+				});
+			});
+		</script>
+	</head>
+	<body>
+		<pre id="slot"></pre>
+		<pre id="slot2"></pre>
+	</body>
+</html>
+

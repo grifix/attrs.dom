@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+		<meta name="author" content="joje.attrs@gmail.com">
+		
+		<title>observe</title>
+		<script type="text/javascript" src="../build/attrs.dom.js"></script>
+		<script type="text/javascript">
+			var $ = require('attrs.dom');
+
+			$.ready(function(e) {
+				console.log('DOM Ready!');
+				
+				var el = $.create('div');
+				
+				function init(el) {
+					// bind basic mutation listeners
+					el.on('staged', function(e) {
+						console.log('staged', e.target);
+					});
+					el.on('unstaged', function(e) {
+						console.log('unstaged', e.target);
+					});
+					el.on('attributes', function(e) {
+						console.log('attributes', e.target, e.attributeName, e.value);
+					});
+					el.on('textdata', function(e) {
+						console.log('textdata', e.target, e);
+					});
+					el.on('added', function(e) {
+						console.log('added', e.target, e.added);
+					});
+					el.on('removed', function(e) {
+						console.log('removed', e.target, e.removed);
+					});
+					el.on('contents', function(e) {
+						console.log('contents', e.target, e);
+					});
+					el.on('attached', function(e) {
+						console.log('attached', e.target, e);
+					});
+					el.on('detached', function(e) {
+						console.log('detached', e.target, e);
+					});
+				}
+				
+				init(el);
+				
+				// regist custom observer
+				el.observe({
+					subtree: true,
+					childList: true,
+					attributes: true,
+					characterData: true,
+					attributeOldValue: true,
+					characterDataOldValue: true,
+					attributeFilter: true,
+					fn: function(e) {
+						console.debug('custom mutation observer:' + e.type, e);
+						// ...fill your code...
+					}
+				});
+				
+				
+				el.html('<a>a</a>text<p>p</p>!');
+				el.create('div.item', 5).html('<a>a</a>text<p>p</p>');
+				el.attr('key', 'value');
+				el.attr('key', 'value');
+				el.attr('key', 'value2');
+				el.one('.item').detach();
+				
+				$(document.body).append(el);
+			});
+		</script>
+	</head>
+	<body>
+	</body>
+</html>
+

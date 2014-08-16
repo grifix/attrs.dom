@@ -6,7 +6,7 @@
 		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
 		<meta name="author" content="joje.attrs@gmail.com">
 		
-		<title>attrs.dom</title>
+		<title>branch</title>
 
 		<script type="text/javascript" src="../build/attrs.dom.js"></script>
 		
@@ -16,31 +16,23 @@
 			$.ready(function(e) {
 				console.log('DOM Ready!');
 				
-				// use branch Selector by new document
-				var result = (function($) {
-					$ = $.newDocument('<div id="slot"></div>');
-					
-					console.log('new document', $.document);					
-					$('#slot').html('created from new document');
-					
-					return $('#slot').clone().contents();
-				})($);
+				var $1 = $.branch('body');
+				var $2 = $.branch('.branch');
+				var $3 = $.newDocument();
+				var $4 = $.newDocument('<div id="slot"></div>');
 				
-				$('#slot').append(result);
+				$1(':root').update('div#slot').html('created 1!');
+				$2(':root').update('div#slot').html('created 2!');
+				$3('body').update('div#slot').html('created 3!');
+				$4('body').update('div#slot').html('created 4!');
 				
-				// use branch Selector by element
-				(function($) {
-					$ = $.branch('.branch');
-					
-					$($.root).create('div#slot.b');
-					$('#slot').html('created from element branch');
-				})($);
+				console.log('$3.document', $3.document.body);
+				console.log('$4.document', $4.document.body);
 			});
 		</script>
 	</head>
 	<body>
 		<div id="slot"></div>
-		
 		<div class="branch"></div>
 		<div class="branch"></div>
 	</body>

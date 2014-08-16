@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+		<meta name="author" content="joje.attrs@gmail.com">
+		
+		<title>attrs.dom</title>
+
+		<script type="text/javascript" src="../build/attrs.dom.js"></script>
+		
+		<script type="text/javascript">
+		//<![CDATA[
+			var $ = $ || require('attrs.dom');
+						
+			$.ready(function(e) {
+				console.log('DOM Ready!', document.body);
+				
+				if( true ) {					
+					console.log($.create('div.wrapping', [1,2,3,4,5]).html(function(d) {
+						return '<p>' + d + '</p>';
+					})[0]);
+				
+					console.log($.create('div', [1,2,3,4,5]).html(function(d) {
+						return 'a-' + d;
+					})[0]);
+					
+					
+					console.log('$.addon', $.addon);
+					console.log('$.util', $.util);
+					
+					console.log($('div'));
+					console.log($('div').all());
+					console.log($('div').all(true));
+					
+
+				
+					var el = $.create('div').attr('key', 'value');
+					console.log(el.get(0), el.attrs({a:1,b:2,c:true,d:false,key:''}));
+								
+					console.log($.create('<icon icon="list-unordered"></icon>샘플 페이지<i>Sample Page</i><label>New</label>'));
+					
+					var arr = $('div');
+					arr.add($.create('p', 5), 0);
+					console.log(arr);
+					
+					console.log('div.wrapper', $.create('div.wrapper'));
+					$.create('div.wrapper').appendTo(document.body).create('div.item').html('test').on('*', function(e) {
+						console.log(e.type, e);
+					}).detach();
+					
+					
+					// create tr	
+					console.log($('<tr><td>test</td><td>test</td></tr><tr><td>test</td><td>test</td></tr>'));
+					console.log($.create('<tr><td>test</td><td>test</td></tr><tr><td>test</td><td>test</td></tr>'));
+					
+					var el = $('#content');
+					console.log('el', el);
+					console.log('el instanceof $', (el instanceof $));
+				
+					// attr
+					console.log('\n\n - attr');				
+					console.log($('#content').name('test!!!').name(false)[0]);
+				
+					$('.gnb').id('gnb');
+					console.log($('.gnb').attrs());
+				
+					$('#content').attr('name1', 'value1');
+					console.log($('#content').attrs());
+				
+					$('#content').attrs({
+						'name2': 'value2',
+						'name3': 'value3'
+					});
+					console.log($('#content').attrs());
+				
+					$('#content').attrs({
+						'name2': '',
+						'name3': false
+					});
+					console.log($('#content').attrs());
+				
+					// style
+					console.log('\n\n - style');
+					$('#content').style('border', '1px solid black');
+					$('#content').style({
+						'font-size': '9px',
+						'font-weight': 'bold'
+					});
+					console.log('style', $('#content').style('border'));
+					console.log('style', $('#content').style('font-size'));
+					console.log('style', $('#content').style('font-weight'));
+					$('#content').style({
+						'font-size': '',
+						'font-weight': false
+					});
+					console.log('style', $('#content').style('border'));
+					console.log('style', $('#content').style('font-size'));
+					console.log('style', $('#content').style('font-weight'));
+				
+					// data
+					console.log('\n\n - data');
+					$('#content').data('key', 'value');
+					$('#content').data({
+						'key2': '2',
+						'key3': '3'
+					});
+					console.log('data(key)', $('#content').data('key'));
+					console.log('data', $('#content').data());
+				
+					// arg
+					console.log('\n\n - arg');
+					$('#content').arg('joje');
+					console.log('arg', $('#content').arg());
+				
+					// event
+					console.log('\n\n - event');
+					$('#content').on('click', function(e) {
+						console.log(e.type);
+						$(this).off('click', arguments.callee);
+					});
+				
+					// html & text
+					console.log('\n\n - html & text');
+					console.log('html', $('#content').html());
+					console.log('outer', $('#content').outer());
+					console.log('text', $('#content').text());
+				
+					$('#content').html('<a href="#">html</a>');
+					console.log('html', $('#content').html());
+				
+					$('#content').text('<a href="#">text</a>');
+					console.log('text', $('#content').text());
+				
+					$('#content').outer('<div id="content" class="recreated">outer</div>');
+					console.log('outer', $('#content').outer());
+				
+					// clear
+					console.log('\n\n - clear');
+					var els = $('div');
+					console.log('div', els);
+					console.log('clear', els.clear());
+					
+					
+
+					// check & select
+					var item = $.create('input', 3).attr('type', 'checkbox').check();
+					console.log(item, item.checked(), item.is(':checked'), item.is(':checkbox'));
+				
+					var item = $.create('input', 3).attr('type', 'radio').select();
+					console.log(item, item.selected(), item.is(':selected'), item.is(':radio'));
+				
+				
+					// global select
+					console.log('\n\n - global selection');	
+					console.log('#content', $('#content'));
+					console.log('.gnb', $('.gnb'));
+					console.log('div > a', $('div > a'));
+				
+					// sub select
+					console.log('\n\n - sub selection');
+					console.log("$('#gnb').all()", $('#gnb').all());
+					console.log("$('#gnb').one()", $('#gnb').one());
+					console.log("$('div').all()", $('div').all());
+					console.log("$('div').one()", $('div').one());
+				
+					// clone
+					console.log('\n\n - clone');
+					var cloned = $('#gnb').all().clone();
+					console.log('cloned', cloned)
+				
+					// create
+					var item = $('#content').create('div.items');
+					var items = $('#content').create('div.items', [1,2,3,4,5]);
+					var items = $('#content').create('div.items', [1,2,3,4,5], function(el) {return el;});
+				
+				
+				
+					// insert
+					$('#content').append($('#gnb').all());
+					$('#gnb').all().appendTo($('#content'));
+					$('#gnb').all().appendTo('#content');
+					$('#gnb').all().filter(function() {
+						return true;
+					}).appendTo('#content', 0);
+					
+					// prependTo
+					$.create('div.item').html('prepend test by function').prependTo(function() {
+						return $('#content')[0];
+					});
+					$.create('div.item').html('prepend test by selector string').prependTo('#content');
+					$.create('div.item').html('prepend test by Selector').prependTo($('#content'));
+					$.create('div.item').html('prepend test by element').prependTo($('#content')[0]);
+					
+					// appendTo
+					$.create('div.item').html('append test by function').appendTo(function() {
+						return $('#content')[0];
+					});
+					$.create('div.item').html('append test by selector string').appendTo('#content');
+					$.create('div.item').html('append test by Selector').appendTo($('#content'));
+					$.create('div.item').html('append test by element').appendTo($('#content')[0]);
+				
+				
+				
+					// total
+					var items = $('#content')
+					.create('div.items', [1,2,3,4,5])
+					.attr('value', function(d) {
+						return 'item-' + d;
+					})
+					.style('color', function(d) {
+						return 0xffffff / d;
+					});
+				
+					var items = $('div.slot').create('div.item', [1,2,3,4,5])
+					.html(function(d) { return 'created-' + d; })
+					.create('div.item', ['a','b','c'])
+					.out().style('background', 'silver');
+					
+					$('#logo').create('div.inner', [{
+						color: '#777',
+						border: '1px solid silver'
+					}, {
+						color: '#a77',
+						border: '1px solid orange'
+					}])
+					.style('margin', '5px')
+					.style('color', function(d) {return d.color;})
+					.style('border', function(d) {return d.border;})
+					.html('created!')
+					.out();
+				
+					console.log(items);
+					
+					var items = $.create('div.inner', [{
+						color: '#777',
+						border: '1px solid silver'
+					}, {
+						color: '#a77',
+						border: '1px solid orange'
+					}])
+					.style('margin', '5px')
+					.style('color', function(d) {return d.color;})
+					.style('border', function(d) {return d.border;})
+					.html('created!');
+			
+					console.log(items);
+					
+					console.log('staged', $('#content').staged());
+					console.log($.create('div').staged());
+					
+					console.log($('#content').showing());
+					
+					
+					console.log($('#content').hide().showing());
+					console.log($('#content').show().showing());
+					
+					
+				
+					console.log($('#content').html('html').html());
+					console.log($('#content').text('text').text());
+					console.log($('#content').outer());
+					
+					
+
+					console.log($('<div class="test">a</div>'));
+					console.log($('<tr class="test">a</tr>'));
+					console.log($('<td class="test">a</td>'));
+					
+					console.log($('#content').boundary());
+					
+					$('div.item').call(function(d) {
+						console.log('call', this, d);
+					});
+					$.create('div.item', [1,2,3,4,5]).call(function(d) {
+						console.log('call', this, d);
+					});
+					
+					$('div').attr('a', 1).attrs({b:2,a:false});
+					
+					
+					console.log($('#content').bg('url("http://www.w3schools.com/images/w3logotest2.png")').bg());
+					console.log($('#content').font(20).font());
+					
+					
+					
+					console.log($('div').at(1).out());
+					
+					console.log($('#header').visit(function(ctx) {
+						console.log('visiting', this);
+					}, 'down', false));
+					
+					
+				
+					console.log($('.gnb > a').wrap('div.wrapping').out());
+					
+					
+										
+					// tpl
+					var dataset = {
+						length: 2,
+						rows: [
+							{
+								id: '1',
+								title: '제목',
+								description: '내용',
+								date: new Date(),
+								price: 1500000,
+								flag: true
+							}, {
+								id: '2',
+								title: '제목2',
+								description: '내용2',
+								date: new Date(),
+								price: 1500000,
+								flag: false
+							}
+						]
+					};
+					
+					var dataset2 = {
+						length: 1,
+						rows: [
+							{
+								id: 'asdasd',
+								title: '새로운제목',
+								description: '새로운내용',
+								date: new Date(),
+								price: 23400,
+								flag: false
+							}
+						]
+					};
+				
+					var data = {
+						id: '3',
+						title: '제목3',
+						description: '내용3',
+						date: new Date(),
+						price: 340000,
+						flag: true
+					};
+					
+					
+					console.log($('#tpl-test').bind(dataset));
+					
+					
+					console.log($('#tpl').tpl(dataset.rows).appendTo('#content'));
+					console.log($('#tpl').tpl(data).appendTo('#content'));
+					console.log($('#tpl').arg('good').tpl(function(d) {
+						return [{
+							id: d,
+							title: '제목' + d,
+							description: '내용' + d,
+							date: new Date(),
+							price: 340000,
+							flag: true		
+						}, {
+							id: d,
+							title: '제목2' + d,
+							description: '내용2' + d,
+							date: new Date(),
+							price: 140000,
+							flag: false		
+						}]
+					}).appendTo('#content'));
+					
+					// events
+					$('.gnb > a').on('click', function(e) {
+						console.log('click', e.type, e);
+					});
+					
+					$('.gnb > a').on('custom', function(e) {
+						console.log('custom', e.type, e);
+					})
+					
+					$('.gnb > a').fire('custom', {added:1});
+					$('.gnb > a').fire('click');
+					
+					
+					$('.gnb > a').invisible().hide().show();
+					
+					// save & restore
+					$('#tpl-test').save(1).bind(dataset).restore().bind(dataset).save(2).html('test').restore(2).restore(1);
+					$('#tpl-test').bind(dataset).bind(dataset2);
+					$('#logo').create('div.item', [1,2,3,4,5]).restore();
+					$.create('div.item').html('test!').clone([1,2,3,4,5]).appendTo('#logo').html('test2').restore();
+					
+					
+					
+				
+					var el = $.create('div#test-item.a.b.c');
+					console.log('is a', el.is('.a'));
+					console.log('is b', el.is('.b'));
+					console.log('is c', el.is('.c'));
+					console.log('is a b', el.is('.a.b'));
+					console.log('is a c', el.is('.a.c'));
+					console.log('is a b c', el.is('.a.b.c'));
+					console.log('is d', el.is('.d'));
+					console.log('is a b d', el.is('.a.b.d'));
+				
+					console.log('div', el.is('div'));
+					console.log('div#test-item', el.is('div#test-item'));
+					console.log('div#test-item2', el.is('div#test-item2'));
+					console.log('#test-item', el.is('#test-item'));
+					console.log('#test-item2', el.is('#test-item2'));
+					console.log('.a', el.is('.a'));
+					console.log('#test-item.a.c', el.is('#test-item.a.c'));
+					console.log('.a.d', el.is('.a.d'));
+					
+
+				
+					console.log($('*').on('added removed', function(e) {
+						//console.log(e.type, this, e.added || e.removed);
+					}).find('.slot').create('div.item', 3));
+					
+					
+					// style
+					var result = $('#content')
+						.css('border', '1px solid silver')
+						.css('font-weight', 'bold')
+						.css('font-size', 20)
+						.css('transform', 'translate(0,20px)')
+						.css({
+							'color': 'orange',
+							'background-color': 'rgba(55,55,55,0.5)'
+						})
+						.css('font-size', false)
+						.css();
+					
+					console.log(result, $('#content').css('transform'), $('#content').css('-webkit-transform'));
+					
+					console.log($('.gnb > a[name="examples"]').before('<p>before</p>').after('<p>after</p>'));
+					
+					console.log($('#content').width(300).width());
+					console.log($('#content').height(300).height());
+					console.log($('#content').border('1px dotted orange').padding(10).css());
+				}
+				
+				
+			});
+		//]]>
+		</script>
+	</head>
+	<body>
+		<script id="tpl" type="text/html">
+			<div id="{id}" class="item" title="{title}">
+				<h1>{title}</h1>
+				<em>{date:date}</em>
+				<p>{description}</p>
+				<tpl if="this.flag">flag is true</tpl>
+				<span class="price">{price:currency}</span>
+			</div>
+		</script>
+		
+		<div id="header">	
+			<a id="logo" href="#">Logo</a>
+			
+			<div class="gnb">
+				<a name="about" type="text" class="embos" href="#about">ABOUT</a>
+				<a name="guides" type="text" class="embos" href="#guides">GUIDES</a>
+				<a name="api" type="text" class="embos" href="#api">API</a>
+				<a name="examples" type="text" class="embos" href="#examples">EXAMPLES</a>
+				<a name="download" type="text" class="embos" href="#download">DOWNLOAD</a>
+				<a name="community" type="text" class="embos" href="#community">COMMUNITY</a>
+			</div>
+			
+			<div id="tbar"></div>
+			
+	        <div id="repository">
+				<a type="icon+text" icon="icons.fork" style="icon-size:20px;text-size:12px;" href="https://github.com/attrs/attrs.ui.js" target="_blank">GitHub</a>
+	        </div>
+		</div>
+		<div id="center">
+			<div id="side">
+			</div>
+			<div id="content">
+				content!
+				<!-- 주석 -->
+				<a>link</a>
+				
+				<div id="tpl-test" length="{length}" style="border: 1px solid darkblue;">
+					<tpl for="rows">
+						<h1>{title}</h1>
+						<em>{date:date}</em>
+						<p>{description}</p>
+						<tpl if="this.flag">flag is true</tpl>
+						<span class="price">{price:currency}</span>
+					</tpl>
+				</div>
+			</div>
+			<div id="rside">
+				<div class="slot"></div>
+				<div class="slot"></div>
+			</div>
+		</div>
+		<div id="footer">
+			<div id="footer-wrapper">
+				<div class="info">
+					Copyright 2014 <a href="http://attrs.io">Team Attrs.</a><br>
+				</div>
+				<div class="links">
+					<a class="twitter" href="http://twitter.com/jojejoje6">
+						<i class="icon-twitter"></i><span>Twitter</span>
+					</a>
+					<a class="github" href="https://github.com/joje6">
+						<i class="icon-github"></i><span>GitHub</span>
+					</a>
+				</div>
+			</div>
+	    </div>
+	</body>
+</html>
+

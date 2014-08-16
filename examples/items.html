@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+		<meta name="author" content="joje.attrs@gmail.com">
+		
+		<title>import</title>
+		<script type="text/javascript" src="../build/attrs.dom.js"></script>
+		<script type="text/javascript">
+			(function() {
+				var $ = require('attrs.dom');
+
+				$.ready(function(e) {
+					console.log('DOM Ready!');
+				
+					var el = $('#slot');
+					el.on('item.add', function(e) {
+						console.log('item.add', e);
+					});
+				
+					el.on('item.added', function(e) {
+						console.log('item.added', e);
+					});
+				
+					el.on('item.remove', function(e) {
+						console.log('item.remove', e);
+					});
+				
+					el.on('item.removed', function(e) {
+						console.log('item.removed', e);
+					});
+				
+					el.item({
+						name: 'item1'
+					});
+					el.items([
+						{
+							name: 'item2'
+						}, {
+							name: 'item3'
+						}
+					]);
+					el.items([
+						{
+							name: 'item4'
+						}, {
+							name: 'item5'
+						}
+					], true);
+					
+					el.item('test1', 2);
+					
+					el.items(['test2', 'test3'], true, 3);
+					
+					el.items(['test4', 'test5'], true, 100);
+					
+					el.items(['test6', 'test7'], true, 0);
+				
+					console.log('items', el.items());
+				
+					// items with load
+					el.loader(function(err, data, type, url, xhr) {
+						if( err ) return console.error(err);
+					
+						if( data && data.rows ) $(this).items(data.rows);
+					});
+					el.load('partials/json.json');
+				});
+			})();
+		</script>
+	</head>
+	<body>
+		<div id="slot"></div>
+	</body>
+</html>

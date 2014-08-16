@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+		<meta name="author" content="joje.attrs@gmail.com">
+		
+		<title>routes</title>
+
+		<script type="text/javascript" src="../build/attrs.dom.js"></script>
+		
+		<script type="text/javascript">
+			var $ = $ || require('attrs.dom');
+						
+			$.ready(function(e) {
+				console.log('DOM Ready!');
+				
+				$('#slot').routes({
+					'@init': function(e) {
+						console.log('@init');
+					},
+					// @change will invoke at hash changed
+					'@changed': function(e) {
+						console.log('@changed');
+					},
+					// @before will invoke at before hash function always
+					'@before': function(e) {
+						console.log('@before');
+					},
+					// @default will be invoked at hash changed to '' and hash doesn't exists in routes when on ready at once.
+					'@default': function(e) {
+						console.log('@default');
+					},
+					// @notfound will invoke when route hash was not defined.
+					'@notfound': function(e) {
+						console.log('@notfound');
+					},
+					// @after will invoke at after hash function always
+					'@after': function(e) {
+						console.log('@after');
+					},
+					'test': function(e) {
+						console.log('slot.test', e);
+					}
+				});
+				
+				$('#sub').route('test', function(e) {
+					console.log('sub.test', e);	
+				});
+				
+				$('#subofsub').routes({
+					'test': function(e) {
+						console.log('subofsub.test', e);
+					},
+					'test2': function(e) {
+						console.log('subofsub.test2', e);	
+					}
+				});
+			});
+			
+			// for delete
+			function remoteroutes() {
+				$('#sub').route('test', false);
+				$('#subofsub').routes(false);
+				$('#slot').routes(false);
+			}
+			
+			function manual() {
+				console.debug('-- fire #slot.test');
+				$('#slot').fireroute('test');
+				
+				console.debug('-- fire #slot.test2');
+				$('#slot').fireroute('test2');
+				
+				console.debug('-- fire #sub.test');
+				$('#sub').fireroute('test');
+				
+				console.debug('-- fire #slot.""');
+				$('#slot').fireroute('');
+				
+				console.debug('-- fire #slot');
+				$('#slot').fireroute();
+			}
+		</script>
+	</head>
+	<body>
+		<div id="slot">
+			<div id="sub">
+				<div id="subofsub"><a href="javascript:manual();">manual fireroute</a></div>
+			</div>
+		</div>
+		<a href="javascript:remoteroutes();">remote routes</a>
+	</body>
+</html>
+

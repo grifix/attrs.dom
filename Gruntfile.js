@@ -1,19 +1,24 @@
 var files = [
 	'./src/polyfill/EventListener.oldie.js',
-	'./src/polyfill/EventListener.js',	
+	'./src/polyfill/EventListener.js',
 	'./src/attrs.module.js',
 	'./src/BOF.js',
-	'./src/DateUtil.js',
-	'./src/Template.js',
-	//'./src/EventDispatcher.js', 
 	'./src/CSS3Calibrator.js',
 	'./src/Device.js',
 	'./src/StyleSession.js',
+	'./src/Color.js',
+	'./src/DateUtil.js',
+	'./src/Class.js',
+	'./src/Selector.js',
+	
+	'./src/Importer.js',
+	'./src/Template.js',
+	'./src/HashObserver.js',
 	'./src/Animator.js',
 	'./src/Scroller.js',
-	'./src/Selector.js',
-	'./src/Extentions.js',
-	'./src/Importer.js',
+	'./src/SingleSelectable.js',
+	'./src/Selectable.js',
+	'./src/Items.js',
 	'./src/EOF.js'
 ];
 

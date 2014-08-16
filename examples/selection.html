@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+		<meta name="author" content="joje.attrs@gmail.com">
+		
+		<title>selection</title>
+		<script type="text/javascript" src="../build/attrs.dom.js"></script>
+		<script type="text/javascript">
+			var $ = require('attrs.dom');
+
+			$.ready(function(e) {
+				console.log('DOM Ready!');
+				
+				console.log('$(.item)', $('.item'));
+				console.log('$(.item).all()', $('.item').all());
+				console.log('$(.item).all(true)', $('.item').all(true));	// contain self
+				console.log('$(.item).one()', $('.item').one());
+				console.log('$(.item).one(a)', $('.item').one('a'));				
+				console.log('$(.item).find(p)', $('.item').find('p'));
+				
+				console.log('$(.item).querySelector(.a)', $('.item').querySelector('.a'));
+				console.log('$(.item).querySelector(a)', $('.item').querySelector('a'));
+				
+				console.log('$(.item).querySelectorAll(.a)', $('.item').querySelectorAll('.a'));
+				console.log('$(.item).querySelectorAll(*)', $('.item').querySelectorAll('*'));
+				console.log('$(.item).querySelectorAll(a)', $('.item').querySelectorAll('a'));				
+
+				console.log('$(.item).querySelectorAll(.a, p)', $('.item').querySelectorAll('.a, p'));
+				console.log('$(.item).querySelectorAll(span, p)', $('.item').querySelectorAll('span, p'));
+				console.log('$(.item).querySelectorAll(.item, p)', $('.item').querySelectorAll('.item, p'));
+			});
+		</script>
+	</head>
+	<body>
+		<div id="slot">
+			<div class="item a"><a>anchor</a><p>paragraph</p></div>
+			<div class="item b"><a>anchor</a><span>span</span></div>
+			<div class="item c"><a>anchor</a><p>paragraph</p></div>
+		</div>
+	</body>
+</html>
+

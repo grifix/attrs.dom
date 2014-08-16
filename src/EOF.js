@@ -8,6 +8,8 @@
 	if( eval('typeof(StyleSession) !== "undefined"') ) addon.StyleSession = StyleSession;
 	if( eval('typeof(Template) !== "undefined"') ) addon.Template = Template;
 	if( eval('typeof(Importer) !== "undefined"') ) addon.Importer = Importer;
+	if( eval('typeof(Class) !== "undefined"') ) addon.Class = Class;
+	if( eval('typeof(Color) !== "undefined"') ) addon.Color = Color;
 	
 	
 	// check current is in commonjs context
@@ -18,10 +20,9 @@
 	} catch(e) {}	
 	
 	// binding to global or regist module system. amd, cjs, traditional
-	var $ = SelectorBuilder(document);
 	if( typeof(window.define) === 'function' && define.attrs ) {
 		define('attrs.dom', function(module) {
-			module.exports = $;
+			module.exports = SelectorBuilder(document);
 		});
 		define('animator', function(module) {
 			module.exports = Animator;
@@ -41,43 +42,55 @@
 		define('style-session', function(module) {
 			module.exports = StyleSession;
 		});
-		define('importor', function(module) {
+		define('html-import', function(module) {
 			module.exports = Importer;
+		});
+		define('class', function(module) {
+			module.exports = Class;
+		});
+		define('color', function(module) {
+			module.exports = Color;
 		});
 	} else if( typeof(window.define) === 'function' && define.amd ) {
 		define(function() {
 			return $;
 		});
 		define('animator', function(module) {
-			module.exports = Animator;
+			return Animator;
 		});
 		define('css-calibrator', function(module) {
-			module.exports = CSS3Calibrator;
+			return CSS3Calibrator;
 		});
 		define('device', function(module) {
-			module.exports = Device;
+			return Device;
 		});
 		define('scroller', function(module) {
-			module.exports = Scroller;
+			return Scroller;
 		});
 		define('template', function(module) {
-			module.exports = Template;
+			return Template;
 		});
 		define('style-session', function(module) {
-			module.exports = StyleSession;
+			return StyleSession;
 		});
-		define('importor', function(module) {
-			module.exports = Importer;
+		define('html-import', function(module) {
+			return Importer;
+		});
+		define('class', function(module) {
+			return Class;
+		});
+		define('color', function(module) {
+			return Color;
 		});
 	} else if( CJS ) {
 		exports = $;
 	} else {
 		var original = window.$;
-		window.$ = $;
+		var attrsdom = window.$ = SelectorBuilder(document);
 	
 		$.noConflict = function() {
 			window.$ = original;
-			return $;
+			return attrsdom;
 		};
 	}
 })();

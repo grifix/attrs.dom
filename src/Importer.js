@@ -1,6 +1,4 @@
 var Importer = (function() {
-	"use strict";
-	
 	var Ajax = require('ajax');
 	var Path = require('path');
 	
@@ -195,19 +193,25 @@ var Importer = (function() {
 		}
 		
 		var doc = ownerDocument;
+		
 		// make currentScript & ownerDocument
 		if( !script.ownerDocument ) {
 			if( Object.defineProperty ) {
-				Object.defineProperty(script, 'ownerDocument', {
-					configurable: true,
-					get: function() {
-						return doc;
-					}
-				});
-			} else {
-				script.ownerDocument = ownerDocument;
+				try {
+					Object.defineProperty(script, 'ownerDocument', {
+						configurable: true,
+						get: function() {
+							return doc;
+						}
+					});
+				} catch(e) {
+					script.ownerDocument = doc;
+				}
+			} else {		
+				script.ownerDocument = doc;
 			}
 		}
+		
 		if( !document.currentScript ) {
 			if( Object.defineProperty ) {									
 				Object.defineProperty(document, 'currentScript', {
@@ -259,8 +263,26 @@ var Importer = (function() {
 		options = options || {};
 		var contents = options.contents || '';
 		var noscript = options.noscript;
-		var base = options.base;
-				
+		var url = Path.join(location.href, (options.url || location.href));
+		var uri = Path.uri(url);
+		var base = Path.dir(url);
+		
+		if( false ) {
+			var req = new XMLHttpRequest;
+			req.open('GET', 'partials/partial.html', true);
+			/*if (req.overrideMimeType) {
+				req.overrideMimeType('application/xml');
+			}*/
+			req.onreadystatechange = function() {
+				if (this.readyState == 4) {
+					var doc = this.responseXML;
+					console.debug('result', doc, doc.URL);
+				}
+			}
+			req.responseType = 'document';
+			req.send(null);
+		}
+		
 		if( !Device.is('webkit') && window.DOMParser ) {
 			var parser = new DOMParser();
 			doc = parser.parseFromString(contents, "text/html");
@@ -279,7 +301,43 @@ var Importer = (function() {
 			doc.close();
 		}
 		
+		if( Object.defineProperties ) {
+			try {
+				Object.defineProperties(doc, {
+					'URL': {
+						configurable: false,
+						get: function() {
+							return url;
+						}
+					},
+					'baseURI': {
+						configurable: false,
+						get: function() {
+							return url;
+						}
+					},
+					'documentURI': {
+						configurable: false,
+						get: function() {
+							return url;
+						}
+					}
+				});
+			} catch(e) {
+				// 사파리의 경우 "Attempting to change access mechanism for an unconfigurable property." ...
+				console.error('error', e);
+			}
+		} else {
+			doc.URL = url;
+			doc.baseURI = url;
+			doc.documentURI = url;
+		}
+		
 		if( noscript !== true ) {
+			if( typeof(options.before) === 'function' ) {
+				options.before(doc);
+			}
+			
 			var headflag = [];
 			var head = doc.head && doc.head.childNodes;
 			if( head && head.length ) {
@@ -341,6 +399,10 @@ var Importer = (function() {
 	       	var event = doc.createEvent('Event');
 			event.initEvent('DOMContentLoaded', true, true);
 			doc.dispatchEvent(event);
+		
+			if( typeof(options.after) === 'function' ) {
+				options.after(doc);
+			}
 		}
 		
 		return doc;
@@ -354,7 +416,6 @@ var Importer = (function() {
 			
 			//options.responseType = 'document';
 			var src = options.url;
-			var base = options.base || Path.dir(Path.join(location.href, src));
 						
 			return {
 				done: function(callback, async) {
@@ -369,11 +430,11 @@ var Importer = (function() {
 						if( typeof(callback) === 'function' ) {
 							if( err ) return callback(err);
 						
-							result = createDocument({contents:data, base:base});
+							result = createDocument({contents:data, url:src});
 							callback(null, result);
 						} else {
 							if( err ) throw err;
-							else result = createDocument({contents:data, base:base});
+							else result = createDocument({contents:data, url:src});
 						}
 					});
 					return result;
@@ -381,7 +442,7 @@ var Importer = (function() {
 				async: function(callback) {
 					return Ajax.ajax(options).done(function(err, data) {						
 						if( err ) return callback(err);
-						callback(null, createDocument({contents:data, base:base}));
+						callback(null, createDocument({contents:data, url:src}));
 					});
 				}
 			};
@@ -417,7 +478,7 @@ SelectorBuilder.fn['import'] = function(options, async, callback) {
 			};
 		}
 		
-		Importer.load(options).done(function(err, doc) {
+		Importer.load(options).done(function(err, doc, xhr) {
 			if( err ) return callback(err);
 			if( doc.body && doc.body.childNodes.length ) {
 				//var body = document.adoptNode(doc.body);
@@ -425,6 +486,19 @@ SelectorBuilder.fn['import'] = function(options, async, callback) {
 			}
 			
 			callback(null, doc);
+			
+			if( err ) {
+				$(el).fire('importerror', {
+					error: err,
+					xhr: xhr
+				});
+			} else {
+				$(el).fire('imported', {
+					url: options.url,
+					document: doc,
+					xhr: xhr
+				});
+			}
 		}, async);
 	});
 };
