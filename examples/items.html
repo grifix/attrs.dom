@@ -39,6 +39,7 @@
 					el.item({
 						name: 'item1'
 					});
+					
 					el.items([
 						{
 							name: 'item2'
@@ -46,6 +47,7 @@
 							name: 'item3'
 						}
 					]);
+					
 					el.items([
 						{
 							name: 'item4'
@@ -70,6 +72,7 @@
 					
 						if( data && data.rows ) $(this).items(data.rows);
 					});
+					
 					el.load('partials/json.json');
 				});
 			})();

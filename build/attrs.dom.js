@@ -3,7 +3,7 @@
  * 
  * @author: joje (https://github.com/joje6)
  * @version: 0.1.0
- * @date: 2014-08-16 19:2:36
+ * @date: 2014-08-16 21:12:46
 */
 
 /*!
@@ -3064,9 +3064,6 @@ var SelectorBuilder = (function() {
 		}
 	}
 	
-	
-	
-	
 	var Commons = function Commons() {};
 	Commons.prototype = new Array();
 	var commons = new Commons();
@@ -3519,47 +3516,9 @@ var SelectorBuilder = (function() {
 			for(var k in attrs) this.attr(k, attrs[k]);
 			return this;
 		};
-	
-		// contents handling
-		fn.text = function(value) {
-			return type1.call(this, 'innerText', arguments);
-		};
-	
-		fn.html = function(value) {
-			if( !arguments.length ) {
-				var arr = [];
-				this.each(function() {
-					arr.push(this.innerHTML);
-				});
-				return array_return(arr);
-			}
 		
-			if( !isArrayType(value) ) value = [value];
-			
-			var document = this.document;
-			var $ = this.$;
-			return this.each(function() {
-				this.innerHTML = '';
-				for(var i=0; i < value.length;i++) {
-					var v = resolve.call(this, value[i]);
-				
-					if( !v ) continue;
-					else if( isNode(v) && v.nodeName === '#text' && !v.nodeValue ) continue;
-					else if( isNode(v) ) this.appendChild(v);
-					else if( isHtml(v) ) $(this).append($.create(v));
-					else this.appendChild(document.createTextNode(v + ''));
-				}
-			});
-		};
-	
 		fn.outer = function(value) {
 			return type1.call(this, 'outerHTML', arguments);
-		};
-	
-		fn.empty = function() {
-			return this.each(function() {
-				this.innerHTML = '';	
-			});
 		};
 	
 	
@@ -3846,12 +3805,16 @@ var SelectorBuilder = (function() {
 			return this.$(arr).owner(this);
 		};
 	
-		fn.contents = function(selector) {
-			var arr = [];
-			this.each(function() {
-				findChild.call(this, 'childNodes', selector, arr);
-			});
-			return this.$(arr).owner(this);	
+		fn.contents = function(newcontents) {
+			if( !arguments.length ) {
+				var arr = this.$().owner(this);
+				this.each(function() {
+					arr.add(this.childNodes);
+				});
+				return arr;
+			}
+			
+			return this.html(newcontents);
 		};
 	
 		fn.filter = fn.except = function(fn) {
@@ -4086,7 +4049,45 @@ var SelectorBuilder = (function() {
 			return $(arr).owner(this);
 		};
 		
-		// insertion
+		// contents
+		fn.text = function(value) {
+			return type1.call(this, 'innerText', arguments);
+		};
+	
+		fn.html = function(value) {
+			if( !arguments.length ) {
+				var arr = [];
+				this.each(function() {
+					arr.push(this.innerHTML);
+				});
+				return array_return(arr);
+			}
+		
+			if( !isArrayType(value) ) value = [value];
+			
+			var document = this.document;
+			var $ = this.$;
+			return this.each(function() {
+				this.innerHTML = '';
+				for(var i=0; i < value.length;i++) {
+					var v = resolve.call(this, value[i]);
+				
+					if( !v ) continue;
+					else if( isNode(v) && v.nodeName === '#text' && !v.nodeValue ) continue;
+					else if( isNode(v) ) $(this).append(v);
+					else if( isHtml(v) ) $(this).append($.create(v));
+					else $(this).append(document.createTextNode(v + ''));
+				}
+			});
+		};
+	
+		fn.empty = function() {
+			return this.each(function() {
+				this.innerHTML = '';	
+			});
+		};
+		
+		// insertion		
 		fn.append = function(items) {
 			if( !items ) return console.error('items was null', items);
 				
@@ -4953,7 +4954,7 @@ var SelectorBuilder = (function() {
 						if( e.type === 'childList' ) {
 							var target = e.target;
 							var added = e.addedNodes;
-							var removed = e.removedNodes;				
+							var removed = e.removedNodes;
 							
 							if( removed ) {
 								for(var i=0; i < removed.length; i++) {
