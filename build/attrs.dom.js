@@ -3,7 +3,7 @@
  * 
  * @author: joje (https://github.com/joje6)
  * @version: 0.1.0
- * @date: 2014-08-18 4:47:33
+ * @date: 2014-08-18 4:53:40
 */
 
 /*!
@@ -4858,6 +4858,7 @@ var SelectorBuilder = (function() {
 		
 		
 		fn.routes = function(routes) {
+			var $ = this.$;
 			if( !arguments.length ) {
 				var arr = [];
 				this.each(function() {
@@ -4891,6 +4892,8 @@ var SelectorBuilder = (function() {
 		
 		fn.route = function(hash, fn) {
 			if( !arguments.length ) return console.error('missing arguments:hash');
+			
+			var $ = this.$;
 			if( arguments.length === 1 ) {
 				var arr = [];
 				this.each(function() {

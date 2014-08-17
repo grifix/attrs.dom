@@ -2218,6 +2218,7 @@ var SelectorBuilder = (function() {
 		
 		
 		fn.routes = function(routes) {
+			var $ = this.$;
 			if( !arguments.length ) {
 				var arr = [];
 				this.each(function() {
@@ -2251,6 +2252,8 @@ var SelectorBuilder = (function() {
 		
 		fn.route = function(hash, fn) {
 			if( !arguments.length ) return console.error('missing arguments:hash');
+			
+			var $ = this.$;
 			if( arguments.length === 1 ) {
 				var arr = [];
 				this.each(function() {
