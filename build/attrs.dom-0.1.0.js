@@ -3,7 +3,7 @@
  * 
  * @author: joje (https://github.com/joje6)
  * @version: 0.1.0
- * @date: 2014-08-16 21:12:46
+ * @date: 2014-08-18 4:47:33
 */
 
 /*!
@@ -2863,8 +2863,18 @@ var SelectorBuilder = (function() {
 
 	function match(el, accessor) {
 		if( accessor === '*' ) return true;
-		if( !isElement(el) ) {
+		
+		if( !isElement(el) && isNode(el) ) {
 			return ( el.nodeName === accessor );
+		}
+		
+		if( typeof(el) === 'string' ) {
+			var a = assemble(el);
+			el = {
+				tagName: a.tag,
+				className: a.classes,
+				id: a.id
+			};
 		}
 	
 		var o = assemble(accessor);
@@ -3042,7 +3052,8 @@ var SelectorBuilder = (function() {
 		return h + baseAccessor + t;
 	}
 	
-	function findChild(method, selector, arr) {
+	function findChild(method, selector) {
+		var arr = [];
 		if( typeof(selector) === 'number' ) {
 			var c = this[method][selector];
 			if( c ) arr.push(c);
@@ -3062,6 +3073,7 @@ var SelectorBuilder = (function() {
 		} else {	// all children
 			merge.call(arr, this[method]);	
 		}
+		return arr;
 	}
 	
 	var Commons = function Commons() {};
@@ -3085,7 +3097,6 @@ var SelectorBuilder = (function() {
 			if( selector === ':root' ) selector = Selector.root;
 			
 			if( selector && selector.nodeType === 9 ) return SelectorBuilder(selector);
-			else if( selector instanceof Selector ) return selector;
 			else if( selector === document || selector === window ) return Selector;
 			else if( selector !== __root__ ) return new Selection(selector, criteria, single);
 		}
@@ -3744,8 +3755,11 @@ var SelectorBuilder = (function() {
 		fn.parent = function(cnt) {
 			var arr = [];
 			this.each(function() {
+				if( !isNode(this) ) return;
+				
 				var p = this.parentNode;
-				if( p ) arr.push(p);
+				if( !p ) return;		
+				arr.push(p.__host__ || p);
 			});
 			return this.$(arr).owner(this);
 		};
@@ -3798,18 +3812,26 @@ var SelectorBuilder = (function() {
 		};
 	
 		fn.children = function(selector) {
-			var arr = [];
+			var arr = this.$().owner(this);
 			this.each(function() {
-				findChild.call(this, 'children', selector, arr);
+				if( !isElement(this) ) return;
+				
+				var shadow = data.call(this, 'shadow');
+				if( shadow ) arr.add(shadow.children());
+				else arr.add(findChild.call(this, 'children', selector));
 			});
-			return this.$(arr).owner(this);
+			return arr;
 		};
 	
 		fn.contents = function(newcontents) {
 			if( !arguments.length ) {
 				var arr = this.$().owner(this);
 				this.each(function() {
-					arr.add(this.childNodes);
+					if( !isElement(this) ) return;
+					
+					var shadow = data.call(this, 'shadow');
+					if( shadow ) arr.add(shadow.contents());
+					else arr.add(this.childNodes);
 				});
 				return arr;
 			}
@@ -4068,40 +4090,184 @@ var SelectorBuilder = (function() {
 			var document = this.document;
 			var $ = this.$;
 			return this.each(function() {
-				this.innerHTML = '';
+				var el = $(this);
+				el.empty();
 				for(var i=0; i < value.length;i++) {
 					var v = resolve.call(this, value[i]);
 				
 					if( !v ) continue;
 					else if( isNode(v) && v.nodeName === '#text' && !v.nodeValue ) continue;
-					else if( isNode(v) ) $(this).append(v);
-					else if( isHtml(v) ) $(this).append($.create(v));
-					else $(this).append(document.createTextNode(v + ''));
+					else if( isNode(v) ) el.append(v);
+					else if( isHtml(v) ) el.append($.create(v));
+					else el.append(document.createTextNode(v + ''));
 				}
 			});
 		};
 	
 		fn.empty = function() {
 			return this.each(function() {
-				this.innerHTML = '';	
+				var shadow = data.call(this, 'shadow');
+				if( shadow ) shadow.empty();
+				else this.innerHTML = '';
 			});
 		};
 		
-		// insertion		
+		// shadow
+		function Shadow(host, template) {
+			this.host = host;
+			this.template = template;
+			
+			template.all(true).each(function() {
+				this.__host__ = host[0];
+			});
+			
+			var contents = host.contents().detach();
+			host.append(template);
+			this.append(contents);
+		}
+		Shadow.prototype = {
+			dom: function() {
+				return this.template;
+			},
+			children: function(selector) {
+				var arr = this.host.$();
+				this.slots().each(function() {
+					if( !isElement(this) ) return;
+			
+					arr.add(findChild.call(this, 'children', selector));
+				});
+				return arr;
+			},
+			contents: function(newcontents) {
+				if( !arguments.length ) {
+					var arr = this.host.$();
+					this.slots().each(function() {
+						if( !isElement(this) ) return;
+				
+						arr.add(this.childNodes);
+					});
+					return arr;
+				}
+		
+				return this.host.html(newcontents);
+			},
+			prepend: function(contents) {
+				if( !contents ) return this; 
+				if( !(contents instanceof Commons) ) contents = $(contents);
+				
+				var $ = this.host.$;
+				var self = this;
+				contents.each(function() {
+					if( !isNode(this) ) return;
+					
+					var slot = self.slot(this);
+					if( slot ) $(slot).prepend(this);
+				});
+				return this;
+			},
+			empty: function() {
+				this.slots().each(function() {
+					this.innerHTML = '';	
+				});
+				return this;
+			},
+			append: function(contents) {
+				if( !contents ) return this; 
+				if( !(contents instanceof Commons) ) contents = $(contents);
+				
+				var $ = this.host.$;
+				var self = this;
+				contents.each(function() {
+					if( !isNode(this) ) return;
+					
+					var slot = self.slot(this);
+					if( slot ) $(slot).append(this);
+				});
+				return this;
+			},
+			slots: function() {
+				return this.template.find('content');
+			},
+			slot: function(selector) {
+				var argc = this.template.find('content');
+				
+				var slotany;
+				var slot;
+				argc.each(function() {
+					var select = this.getAttribute('select');
+					if( !select || select === '*' ) slotany = this;
+					
+					if( selector && select && match(selector, select) ) {
+						slot = this;
+						return false;
+					}
+				});
+				return slot || slotany;
+			}
+		};
+		
+		fn.shadow = function(dom) {
+			var $ = this.$;
+			if( !arguments.length ) {
+				var arr = [];
+				this.each(function() {
+					arr.push(data.call(this, 'shadow'));
+				});
+				return array_return(arr);
+			}
+			
+			if( dom === null || dom === false ) {
+				return this.each(function() {
+					if( !isElement(this) ) return;
+					
+					var shadow = data.call(this, 'shadow');
+					data.call(this, 'shadow', null);
+					
+					shadow.template.detach();
+					var contents = shadow.contents();
+					$(this).append(contents);
+				});
+			}
+			
+			if( typeof(dom) === 'string' || isNode(dom) ) dom = $(dom);			
+			if( !(dom instanceof Commons) || !dom.length ) return this;
+			
+			if( dom.length === 1 ) {
+				var el = dom[0];
+				if( el.tagName && el.tagName.toLowerCase() === 'script' ) {
+					var content = el.textContent || el.innerHTML || el.innerText || '';
+					dom = $.html(content.trim());
+				}
+			}
+			
+			return this.each(function() {
+				if( !isElement(this) ) return;
+				
+				var shadow = new Shadow($(this), dom.clone());
+				data.call(this, 'shadow', shadow);
+			});
+		};
+		
+		// insertion
 		fn.append = function(items) {
 			if( !items ) return console.error('items was null', items);
 				
 			var $ = this.$;
 			return this.each(function() {
-				var els = resolve.call(this, items);
-			
-				if( !(els instanceof Commons) ) els = $(els);
-			
-				var target = this;
-				els.each(function() {
-					if( this.nodeName === '#text' && !this.nodeValue ) return;
-					target.appendChild(this);
-				});
+				if( !isElement(this) ) return;
+				
+				var els = $(resolve.call(this, items));
+								
+				var shadow = data.call(this, 'shadow');				
+				if( shadow ) {
+					shadow.append(els);
+				} else {
+					var target = this;
+					els.each(function() {
+						if( !isNode(this) ) return;
+						target.appendChild(this);
+					});
+				}
 			});
 		};
 	
@@ -4110,16 +4276,21 @@ var SelectorBuilder = (function() {
 			
 			var $ = this.$;
 			return this.each(function() {
-				var els = resolve.call(this, items);
-			
-				if( !(els instanceof Commons) ) els = $(els);
-			
-				var target = this;
-				els.each(function() {
-					if( this.nodeName === '#text' && !this.nodeValue ) return;
-					if( target.childNodes.length ) target.insertBefore(this, target.childNodes[0]);
-					else target.appendChild(this);
-				});
+				if( !isElement(this) ) return;
+				
+				var els = $(resolve.call(this, items));
+				
+				var shadow = data.call(this, 'shadow');				
+				if( shadow ) {
+					shadow.prepend(els);
+				} else {
+					var target = this;
+					els.each(function() {
+						if( !isNode(this) ) return;
+						if( target.childNodes.length ) target.insertBefore(this, target.childNodes[0]);
+						else target.appendChild(this);
+					});
+				}
 			});		
 		};
 	
@@ -4174,7 +4345,7 @@ var SelectorBuilder = (function() {
 				if( dest instanceof Commons ) dest = dest[dest.length - 1];
 			
 				if( this.nodeName === '#text' && !this.nodeValue ) return;
-				if( dest ) dest.appendChild(this);
+				if( dest ) $(dest).append(this);
 			});
 		};
 	
@@ -4187,8 +4358,7 @@ var SelectorBuilder = (function() {
 				if( dest instanceof Commons ) dest = dest[dest.length - 1];
 			
 				if( this.nodeName === '#text' && !this.nodeValue ) return;
-				if( dest.childNodes.length ) dest.insertBefore(this, dest.childNodes[0]);
-				else dest.appendChild(this);
+				if( dest ) $(dest).prepend(this);
 			});
 		};
 	
@@ -5914,34 +6084,26 @@ var Template = (function() {
 	fn.tpl = function(data, functions) {
 		var document = this.document;
 		var $ = this.$;
-		if( !arguments.length ) {
-			var arr = [];
-			this.each(function() {
-				arr.push(new Template($(this).clone()[0]));
-			});
-			return array_return(arr);
-		} else if( data ) {
-			var arr = [];
-			this.each(function() {
-				var d = data;
-				if( typeof(d) === 'function' ) d = resolve.call(this, d);				
+		if( !data ) data = {};
 		
-				if( typeof(d.length) !== 'number' ) d = [d];
-		
-				for(var i=0; i < d.length; i++) {
-					var el = $(this).clone()[0];
-					if( el.tagName.toLowerCase() === 'script' ) {
-						el = evalHtml(document, el.textContent || el.innerHTML || el.innerText)[0];
-					}
-			
-					new Template(el).bind(d[i], functions);
-					arr.push(el);
+		var arr = [];
+		this.each(function() {
+			if( typeof(data) === 'function' ) data = resolve.call(this, data);				
+	
+			if( typeof(data.length) !== 'number' ) data = [data];
+	
+			for(var i=0; i < data.length; i++) {
+				var el = $(this).clone()[0];
+				if( el.tagName.toLowerCase() === 'script' ) {
+					el = evalHtml(document, el.textContent || el.innerHTML || el.innerText)[0];
 				}
-			});
-			return $(arr).owner(this);
-		} else {
-			return console.error('illegal data', data);
-		}
+		
+				new Template(el).bind(data[i], functions);
+				arr.push(el);
+			}
+		});
+		return $(arr).owner(this);
+		
 	};
 })();
 

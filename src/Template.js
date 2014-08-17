@@ -373,33 +373,25 @@ var Template = (function() {
 	fn.tpl = function(data, functions) {
 		var document = this.document;
 		var $ = this.$;
-		if( !arguments.length ) {
-			var arr = [];
-			this.each(function() {
-				arr.push(new Template($(this).clone()[0]));
-			});
-			return array_return(arr);
-		} else if( data ) {
-			var arr = [];
-			this.each(function() {
-				var d = data;
-				if( typeof(d) === 'function' ) d = resolve.call(this, d);				
+		if( !data ) data = {};
 		
-				if( typeof(d.length) !== 'number' ) d = [d];
-		
-				for(var i=0; i < d.length; i++) {
-					var el = $(this).clone()[0];
-					if( el.tagName.toLowerCase() === 'script' ) {
-						el = evalHtml(document, el.textContent || el.innerHTML || el.innerText)[0];
-					}
-			
-					new Template(el).bind(d[i], functions);
-					arr.push(el);
+		var arr = [];
+		this.each(function() {
+			if( typeof(data) === 'function' ) data = resolve.call(this, data);				
+	
+			if( typeof(data.length) !== 'number' ) data = [data];
+	
+			for(var i=0; i < data.length; i++) {
+				var el = $(this).clone()[0];
+				if( el.tagName.toLowerCase() === 'script' ) {
+					el = evalHtml(document, el.textContent || el.innerHTML || el.innerText)[0];
 				}
-			});
-			return $(arr).owner(this);
-		} else {
-			return console.error('illegal data', data);
-		}
+		
+				new Template(el).bind(data[i], functions);
+				arr.push(el);
+			}
+		});
+		return $(arr).owner(this);
+		
 	};
 })();
