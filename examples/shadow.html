@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+		<meta name="author" content="joje.attrs@gmail.com">
+		
+		<title>shadow</title>
+		<script type="text/javascript" src="../build/attrs.dom.js"></script>
+		<script type="text/javascript">
+			var $ = require('attrs.dom');
+			var el;
+		
+			(function() {
+				$.ready(function(e) {
+					console.log('DOM Ready!');
+				
+					el = $('#slot');
+				});
+			})();
+			
+			function shadow() {
+				el.shadow('#template');
+				var shadow = el.shadow();
+				console.log('shadow', shadow);
+				console.log('slots', shadow.slots());
+				console.log('slot()', shadow.slot());
+				console.log('slot(*)', shadow.slot('*'));
+				console.log('slot(a)', shadow.slot('a'));
+				console.log('slot(a.blabla)', shadow.slot('a.blabla'));
+				console.log('slot(p)', shadow.slot('a'));
+				console.log('slot(p.blabla)', shadow.slot('p.blabla'));
+				console.log('slot(.item)', shadow.slot('.item'));
+				console.log('children', el.children());
+				console.log('contents', el.contents());
+				
+				el.html('<a>a</a><p>p</p>text');
+				el.append('added');
+				el.append(document.createElement('p'));
+				el.append($.create('a').html('added a'));
+				console.log('children', el.children());
+				console.log('contents', el.contents());
+				console.log('parent', el.contents().at(0).parent());
+			}
+			
+			function unshadow() {
+				el.shadow(false);
+				
+				console.log('children', el.children());
+				console.log('contents', el.contents());
+				console.log('parent', el.contents().at(0).parent());
+			}
+		</script>
+	</head>
+	<body>
+		<script id="template" type="text/x-template">
+			<div style="border: 1px dotted black;">
+				<div class="a" style="border: 1px dotted green;">
+					<content select="p"></content>
+				</div>
+				<div class="b" style="border: 1px dotted orange;">
+					<content select="a"></content>
+				</div>
+				<content></content>
+			</div>
+		</script>
+		<div id="slot">
+			text
+			<a class="link">anchor</a>
+			<p>paragraph</p>
+		</div>
+		
+		<a href="javascript:shadow()">shadow</a>
+		<a href="javascript:unshadow()">unshadow</a>
+	</body>
+</html>
+

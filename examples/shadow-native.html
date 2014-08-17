@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+		<meta name="author" content="joje.attrs@gmail.com">
+		
+		<title>shadowdom native</title>
+		<script type="text/javascript" src="../build/attrs.dom.js"></script>
+		<script type="text/javascript">
+			(function() {
+				window.onload = function() {
+					var el = document.querySelector('#slot');
+					var shadow = el.createShadowRoot();
+					
+					var template = document.querySelector('#template');
+					shadow.appendChild(template.content);
+					
+					var a = document.createElement('a');
+					a.innerHTML = 'anchor';
+					el.appendChild(a);
+					
+					var p = document.createElement('p');
+					p.innerHTML = 'p';
+					el.appendChild(p);
+				};
+			})();
+		</script>
+	</head>
+	<body>
+		<template id="template">
+			<div class="inner" style="border: 1px dotted green;">
+				<content select="p"></content>
+			</div>
+			<div class="inner" style="border: 1px dotted orange;">
+				<content select="a"></content>
+			</div>
+			<content></content>
+		</template>
+		<div id="slot">
+			text
+			<a class="link">anchor</a>
+			<p>paragraph</p>
+		</div>
+	</body>
+</html>

@@ -3,7 +3,7 @@
  * 
  * @author: joje (https://github.com/joje6)
  * @version: 0.1.0
- * @date: 2014-08-18 4:53:40
+ * @date: 2014-08-18 5:16:21
 */
 
 /*!
@@ -5664,17 +5664,18 @@ SelectorBuilder.staticfn.newDocument = function() {
 	var doc = Importer.createDocument.apply(this, arguments);
 	return SelectorBuilder(doc);
 };
+SelectorBuilder.staticfn.import = function(options, callback, async) {
+	Importer.load(options).done(function(err, doc, xhr) {
+		if( err ) return callback(err);		
+		callback(null, doc);
+	}, async);
+};
 
-SelectorBuilder.fn['import'] = function(options, async, callback) {
+SelectorBuilder.fn['import'] = function(options, callback, async) {
 	"use strict";
 	
 	var $ = this.$;
 	var document = this.document;
-	
-	if( typeof(async) === 'function' ) {
-		callback = async;
-		async = null;
-	}
 	
 	return this.each(function() {
 		var el = this;

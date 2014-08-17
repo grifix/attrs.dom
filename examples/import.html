@@ -10,23 +10,25 @@
 		<script type="text/javascript" src="../build/attrs.dom.js"></script>
 		<script type="text/javascript">
 			var $ = require('attrs.dom');
-			var importer = require('html-import');
 			
 			function programatically() {
-				importer.load('partials/partial.html').async(function(err, doc) {
+				require('html-import').load('partials/partial.html').done(function(err, doc) {
 					if( err ) return console.error(err);
 
 					console.debug('imported document', doc);
 					
 					$('#slot').append(doc.body.childNodes);
 				});
-
-				var doc = importer.load('partials/partial.html').sync();
-				console.log('imported document', doc);
 				
-				$('#slot').append(doc.body.childNodes);
-			}
+				$.import('partials/partial.html', function(err, doc) {
+					if( err ) return console.error(err);
 
+					console.debug('imported document', doc);
+					
+					$('#slot').append(doc.body.childNodes);
+				})
+			}
+			
 			$.ready(function(e) {
 				console.log('DOM Ready!');
 				
