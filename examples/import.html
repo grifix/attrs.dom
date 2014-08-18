@@ -17,7 +17,7 @@
 
 					console.debug('imported document', doc);
 					
-					$('#slot').append(doc.body.childNodes);
+					$('#slot2').append(doc.body.childNodes);
 				});
 				
 				$.import('partials/partial.html', function(err, doc) {
@@ -25,7 +25,7 @@
 
 					console.debug('imported document', doc);
 					
-					$('#slot').append(doc.body.childNodes);
+					$('#slot3').append(doc.body.childNodes);
 				})
 			}
 			
@@ -33,10 +33,7 @@
 				console.log('DOM Ready!');
 				
 				$('div').css('border', '1px dotted orange');
-				$('#slot').import('partials/partial.html?v=1', function(err, doc) {
-					if( err ) return console.error('error', err);
-					console.log('imported', doc);
-				});
+				$('#slot').import('partials/partial.html?v=1');
 				
 				programatically();
 
@@ -47,6 +44,10 @@
 	</head>
 	<body>
 		<div id="slot"></div>
+		
+		<div id="slot2"></div>
+		
+		<div id="slot3"></div>
 		
 		<div>local</div>
 	</body>

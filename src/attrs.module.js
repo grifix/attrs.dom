@@ -3,7 +3,7 @@
  * 
  * @author: joje (https://github.com/joje6)
  * @version: 0.1.0
- * @date: 2014-08-07 14:27:31
+ * @date: 2014-08-19 5:10:5
 */
 
 (function() {
@@ -113,10 +113,12 @@ var Path = (function() {
 		if( ~path.indexOf('#') ) path = path.substring(0, path.indexOf('#'));
 
 		var base = '', i;
-
+		
 		if( (i = path.indexOf('://')) ) {
 			i = path.indexOf('/', i + 3);
+			
 			if( i < 0 ) return path + '/';
+			else if( !~path.indexOf('/', i + 1) ) return path;
 
 			base = path.substring(0, i) || path;
 			path = path.substring(i);
@@ -321,43 +323,20 @@ console.log('host(ftp://a.b.c.com:8080/)', Path.host('ftp://a.b.c.com:8080/'));
 console.log('host(ftp://a.b.c.com:8080/a/b/c)', Path.host('ftp://a.b.c.com:8080/a/b/c'));
 */
 
+// eval script in global scope
+function eval_in_global(script, env) {
+	with(env || {}) {
+		var result;
+		eval('result = (function() {\n' + script + '\n})();');
+		return result;
+	}
+}
+
 var Ajax = (function() {
-	"use strict"
-
-	function AjaxError(msg, xhr) {
-		this.message = msg;
-		if( xhr ) {
-			this.status = xhr.status;
-			this.xhr = xhr;
-		}
-	}
-
-	AjaxError.toString = function() {
-		return this.message;
-	};
-	
-	// eval script in global scope
-	function eval_in_global(script) {
-		try {
-			eval.call(window, script);
-		} catch(e) {
-			throw new SyntaxError('remote script syntax error (' + e.message + ') in [' + src + ']');
-		}
-	}
-
-	// eval script in global scope
-	function eval_json(script, src) {
-		try {
-			var o;
-			eval('o = ' + script);
-			return o;
-		} catch(e) {
-			throw new SyntaxError('remote json syntax error (' + e.message + ') in [' + src + ']');
-		}
-	}
+	"use strict";
 
 	// string to xml
-	function string2xml(text){
+	function createXMLDocument(text){
 		if( window.ActiveXObject ) {
 			var doc = new ActiveXObject('Microsoft.XMLDOM');
 			doc.async = 'false';
@@ -367,268 +346,296 @@ var Ajax = (function() {
 		}
 		return doc;
 	}
+	
+	function createHTMLDocument(url, contents) {
+		if( !Device.is('webkit') && window.DOMParser ) {
+			var parser = new DOMParser();
+			doc = parser.parseFromString(contents, "text/html");
+			//WARN: DOMParser 로 초기화된 document 는 webkit 에서 dispatchEvent 가 먹히지 않는다. chrome/safari X, ff O
+		}
+		
+		if( !doc && document.implementation && document.implementation.createHTMLDocument ) {
+			doc = document.implementation.createHTMLDocument('noname');
+			doc.open();
+			doc.write(contents);
+			doc.close();
+		} else if( window.ActiveXObject ) {
+			doc = new ActiveXObject("htmlfile");
+			doc.open();
+			doc.write(contents);
+			doc.close();
+		}
+		
+		if( Object.defineProperties ) {
+			try {
+				Object.defineProperties(doc, {
+					'URL': {
+						configurable: false,
+						get: function() {
+							return url;
+						}
+					},
+					'baseURI': {
+						configurable: false,
+						get: function() {
+							return url;
+						}
+					},
+					'documentURI': {
+						configurable: false,
+						get: function() {
+							return url;
+						}
+					}
+				});
+			} catch(e) {
+				// 사파리의 경우 "Attempting to change access mechanism for an unconfigurable property." ...
+				console.error('error', e);
+			}
+		} else {
+			doc.URL = url;
+			doc.baseURI = url;
+			doc.documentURI = url;
+		}
+		
+		return doc;
+	}
+	
+	function toqry(o) {
+		if( !o || typeof(o) != 'object' ) return '';
+
+		var s = '';
+		var first = true;
+		for(var k in o) {
+			var v = o[k];
+			var type = typeof(v);
+			if( type == 'string' || type == 'number' || type == 'boolean' ) {
+				v = encodeURIComponent(v);
+				if( k ) s += ( ((first) ? '':'&') + k + '=' + v);
+				first = false;
+			}
+		}
+
+		return s;
+	}
 
 	// class ajax
 	var Ajax = function() {};
 	
-	Ajax.prototype = {		
-		toqry: function(obj) {
-			if( !obj || typeof(obj) != 'object' ) return '';
-			
-			var s = '';
-			var first = true;
-			for(var k in obj) {
-				var v = obj[k];
-				var type = typeof(v);
-				if( type == 'string' || type == 'number' || type == 'boolean' ) {
-					v = encodeURIComponent(v);
-					if( k ) s += ( ((first) ? '':'&') + k + '=' + v);
-					first = false;
-				}
-			}
-
-			return s;
+	Ajax.prototype = {
+		toqry: toqry,
+		get: function(options, cache) {
+			if( !options ) return console.error('illegal arguments', url);
+			if( typeof(options) === 'string' ) options = {url: options};			
+			if( typeof(cache) === 'boolean' ) options.cache = cache;			
+			return this.ajax(options).get();;
 		},
-		get: function(url, qry, options, fn) {
-			if( typeof(options) == 'function' ) fn = options, options = null;
-
-			if( !url ) {
-				if( fn ) fn(new AjaxError('missing url'));
-				else throw new AjaxError('missing url');
-			}
-			
-			var o = options || {};
-			if( o.eval || o.json ) o.parse = false;
-			else if( o.parse !== true ) o.parse = false;
-			
-			
-			if( !fn ) {
-				o.sync = true;
-				fn = function(err, data) {
-					if( err ) throw err;
-				};
-			}
-			
-			var result;
-			this.ajax(url).qry(qry).parse(o.parse).cache(o.cache).sync(o.sync).get().done(
-				function(err,data,xhr) {
-					if( err ) return fn(err, data, xhr);
-					
-					if( o.json ) {
-						data = eval_json(data);
-					} else if( o.eval ) {
-						eval_in_global(data);
-					}
-
-					result = data;
-					fn(err, data, xhr);
-				}
-			);
-
-			return result;
+		text: function(url, cache) {
+			if( !url ) return console.error('illegal arguments', url);
+			if( typeof(url) === 'string' ) url = {url: url};
+			url.responseType = 'text';			
+			return this.get(url, cache);
 		},
-		text: function(url, cache, fn) {
-			return this.get(url, null, {cache:cache}, fn);
-		},
-		eval: function(url, cache, fn) {
-			return this.get(url, null, {eval:true, cache:cache}, fn);
+		script: function(url, env, cache) {
+			if( !url ) return console.error('illegal arguments', url);
+			if( typeof(url) === 'string' ) url = {url: url};
+			url.responseType = 'script';	
+			url.env = env;		
+			return this.get(url, cache);
 		},
 		json: function(url, cache, fn) {
-			return this.get(url, null, {json:true, cache:cache}, fn);
+			if( typeof(url) === 'string' ) url = {url: url};
+			url.responseType = 'json';			
+			return this.get(url, cache);
 		},
-		ajax: function(url) {
-			var config = {
-				method: 'get',
-				sync: false,
-				cache: true,
-				parse: true
-			};
-
-			if( typeof(url) === 'object' ) {
-				for(var k in url) {
-					config[k] = url[k];
-				}
-			} else if( typeof(url) === 'string' ) {
-				config.url = url;
-			} else {
-				throw new AjaxError('illegal ajax option(string or object):' + url);
+		html: function(url, cache, fn) {
+			if( typeof(url) === 'string' ) url = {url: url};
+			url.responseType = 'document';			
+			return this.get(url, cache);
+		},
+		xml: function(url, cache, fn) {
+			if( typeof(url) === 'string' ) url = {url: url};
+			url.responseType = 'xml';			
+			return this.get(url, cache);
+		},
+		blob: function(url, cache, fn) {
+			if( typeof(url) === 'string' ) url = {url: url};
+			url.responseType = 'blob';			
+			return this.get(url, cache);
+		},
+		ajax: function(options) {
+			if( typeof(options) === 'string' ) {
+				url = {
+					method: 'get',
+					sync: false,
+					responseType: 'text'
+				};
 			}
-
-			var handler = null;
+			
+			if( typeof(options.url) !== 'string' ) return console.error('invalid url', options.url);
+			
+			var xhr = ( window.XMLHttpRequest ) ? new XMLHttpRequest() : new ActiveXObject("Microsoft.XMLHTTP");
+			var url;
+			var executed = false;
+			var loaded = false;
 			var self = this;
-
-			var execute = function() {
-				var fns, err, payload, loaded = false, status, statusText, contentType, parsed = false;
-				handler = {
-					done: function(fn) {
-						fns.listeners.done.push(fn);
-						fns.commit();
-						return this;
-					},
-					success: function(fn) {
-						fns.listeners.success.push(fn);
-						fns.commit();
-						return this;
-					},
-					error: function(fn) {
-						fns.listeners.error.push(fn);
-						fns.commit();
-						return this;
-					}
-				};
-
-				var o = config;
+			var payload;
+			
+			var committer = (function() {
+				var queue = [];
+				var parsed = false;
 				
-				fns = {
-					listeners: {done:[],success:[],error:[]},
-					done: function() {
-						var l = this.listeners.done, args = arguments;
-						if( l ) {
-							l.forEach(function(item) {
-								if( typeof(item) === 'function' ) item.apply(o.scope || item, args);
-							});
-						}
-					},
-					success: function() {
-						var l = this.listeners.success, args = arguments;
-						if( l ) {
-							l.forEach(function(item) {
-								if( typeof(item) === 'function' ) item.apply(o.scope || item, args);
-							});
-						}
-					},
-					error: function() {
-						var l = this.listeners.error, args = arguments;
-						if( l ) {
-							l.forEach(function(item) {
-								if( typeof(item) === 'function' ) item.apply(o.scope || item, args);
-							});
-						}
-					},
-					commit: function() {
-						if( loaded ) {							
-							var data = payload;
-							if( data && !parsed ) {
-								if( o.parse && contentType && contentType.indexOf('json') >= 0 && data ) {
-									try {
-										var json = JSON.parse(data);
-										data = json;
-									} catch(e) {
-										console.warn('[warn] json parse error:', e.message, '[in ' + url + ']');
-									}
-								} else if( o.parse && contentType && contentType.indexOf('xml') >= 0 && data ) {
-									data = string2xml(data);
+				var committer = function(listeners) {
+					if( !loaded ) {
+						queue.push(listeners);
+						return;
+					}
+					
+					var scope = options.scope || self;
+					var responseType = options.responseType || 'text';
+					var contentType = xhr.getResponseHeader('Content-Type');
+					
+					var err;
+					if( !(xhr.status == 200 || xhr.status == 204) ) {
+						err = xhr.statusText || xhr.status;
+					}
+				
+					if( !parsed ) {
+						if( responseType === 'text' ) {
+							payload = xhr.response || xhr.responseText;
+						} else if( responseType === 'document' ) {
+							payload = xhr.responseXML || createHTMLDocument(options.url, xhr.responseText);
+						} else if( responseType === 'blob' ) {
+							payload = new Blob([xhr.response], {type: options.blobType || contentType || 'application/octet-binary'});
+						} else if( responseType === 'xml' ) {
+							payload = xhr.responseXML || createXMLDocument(xhr.responseText);
+						} else if( responseType === 'jsone' ) {
+							try {
+								eval('payload = ' + xhr.responseText);
+							} catch(e) {
+								console.error('json parse error:', e.message, '[in ' + options.url + ']');
+								err = e;
+							}
+						} else if( responseType === 'json' ) {
+							try {
+								payload = xhr.response || JSON.parse(xhr.responseText);
+							} catch(e) {
+								try {
+									eval('payload = ' + xhr.responseText);
+								} catch(e) {
+									console.error('json parse error:', e.message, '[in ' + options.url + ']');
+									err = e;
 								}
-
-								parsed = true;
 							}
-							
-							if( o.interceptor ) {
-								o.interceptor.apply(o.scope || this, [{
-									config: o,
-									error: err,
-									xhr: xhr,
-									payload: payload,
-									data: data,
-									statusText: statusText,
-									contentType: contentType
-								}]);
-							} else {
-								if( err ) this.error(err, data, xhr, payload);
-								else this.success(data, xhr, payload);
-
-								this.done(err, data, xhr, payload);
+						} else if( responseType === 'script' ) {
+							try {
+								eval_in_global(xhr.responseText, options.env);
+								payload = options.env || {};
+							} catch(e) {
+								console.error('script error:', e.message, '[in ' + options.url + ']');
+								err = e;
 							}
+						} else {
+							err = 'unknown responseType:' + responseType;
 						}
+						
+						parsed = true;
 					}
-				};
-
-				if( o.success ) fns.listeners.success.push(o.success);
-				if( o.error ) fns.listeners.error.push(o.error);
-				if( o.done ) fns.listeners.done.push(o.done);
-				
-				var url = o.url;
-				var qry = self.toqry(o.qry) || '';
-				if( url.indexOf('?') > 0 ) url += ((!o.cache ? '&_nc=' + Math.random() : '') + ((qry) ? ('&' + qry) : ''));
-				else url += ((!o.cache ? '?_nc=' + Math.random() : '') + ((qry) ? ('&' + qry) : ''));
-
-				// create xhr
-				var xhr = ( window.XMLHttpRequest ) ? new XMLHttpRequest() : new ActiveXObject("Microsoft.XMLHTTP");
-				xhr.open(o.method, url, !o.sync);
-				if( o.accept ) xhr.setRequestHeader("Accept", o.accept);
-
-				// success
-				var oncomplete = function () {
-					payload = xhr.responseText || '';
-					status = xhr.status;
-					statusText = xhr.statusText;
-					contentType = xhr.getResponseHeader('Content-Type');
-					loaded = true;
-
-					if( xhr.status == 200 || xhr.status == 204 ) {
-						err = null;
-					} else {
-						err = new AjaxError(statusText || status, xhr);
+					
+					function invokeListener(listeners) {
+						if( err && listeners.error ) listeners.error.call(scope, err, payload, xhr, responseType);
+						else if( !err && listeners.success ) listeners.success.call(scope, payload, xhr, responseType);					
+						if( listeners.done ) listeners.done.call(scope, err, payload, xhr, responseType);
 					}
-
-					fns.commit();
-				};
-
-				// error
-				var onerror = function() {
-					payload = xhr.responseText || '';
-					status = xhr.status;
-					statusText = xhr.statusText;
-					contentType = xhr.getResponseHeader('Content-Type');
-					loaded = true;
-					err = statusText || status || 'unknown ajax error';
-
-					fns.commit();
-				};
-
-				if( xhr.addEventListener ) {
-					xhr.addEventListener("load", oncomplete, false);
-					xhr.addEventListener("error", onerror, false);
-					xhr.addEventListener("abort", onerror, false);
-				} else {
-					xhr.onreadystatechange = function() {
-						if( xhr.readyState === 4 ) oncomplete();
-					};
-					xhr.onload = onload;
-					xhr.onerror = onerror;
-					xhr.onabort = onerror;
-				}
-
-				handler.xhr = xhr;
+					
+					if( queue.length ) {
+						queue.forEach(function(listeners) {
+							invokeListener(listeners);
+						});
+						queue = [];
+					}
 				
+					invokeListener(listeners);
+				};
+				
+				return committer;
+			})();
+			
+			var execute = function() {
+				executed = true;
+				loaded = false;
+				
+				var o = options;
+								
+				// build & send
 				try {
+					url = o.url;
+					var qry = toqry(o.qry) || '';
+					if( url.indexOf('?') > 0 ) url += ((o.cache === false ? '&_nc=' + Math.random() : '') + ((qry) ? ('&' + qry) : ''));
+					else url += ((o.cache === false ? '?_nc=' + Math.random() : '') + ((qry) ? ('&' + qry) : ''));
+				
+					// create xhr
+					xhr.open(o.method, url, !o.sync);
+					if( o.accept ) xhr.setRequestHeader("Accept", o.accept);
+					if( o.responseType ) xhr.responseType = o.responseType;
+				
+					// success
+					var oncomplete = function () {
+						loaded = true;
+						committer({
+							error: o.error,
+							success: o.success,
+							done: o.done,
+							interceptor: o.interceptor
+						});
+					};
+
+					// error
+					var onerror = function() {
+						loaded = true;
+						committer({
+							error: o.error,
+							success: o.success,
+							done: o.done,
+							interceptor: o.interceptor
+						});
+					};
+
+					if( xhr.addEventListener ) {
+						xhr.addEventListener("load", oncomplete, false);
+						xhr.addEventListener("error", onerror, false);
+						xhr.addEventListener("abort", onerror, false);
+					} else {
+						xhr.onreadystatechange = function() {
+							if( xhr.readyState === 4 ) oncomplete();
+						};
+						xhr.onload = onload;
+						xhr.onerror = onerror;
+						xhr.onabort = onerror;
+					}
+					
 					if( o.payload ) {
 						if( typeof(o.payload) === 'object' ) {
 							o.payload = JSON.stringify(o.payload);
 							o.contentType = 'application/json';
 						}
 						
-						xhr.setRequestHeader('Content-Type', (o.contentType || 'application/x-www-form-urlencoded') + (o.charset ? ('; charset=' + o.charset) : ''));
-
+						var charset = o.charset ? ('; charset=' + o.charset) : '';						
+						xhr.setRequestHeader('Content-Type', (o.contentType || 'application/x-www-form-urlencoded') + charset);
 						xhr.send(o.payload);
 					} else {
 						xhr.send();
 					}
 				} catch(e) {
-					err = e;
-					status = -1;
-					statusText = 'script error:' + e;
 					loaded = true;
-					fns.commit();
+					console.error('ajax error', e);
 				}
-
-				return handler;
 			};
 
 			return {
 				qry: function(qry) {
 					if( !qry ) return this;
-					config.qry = qry;
+					options.qry = qry;
 					return this;
 				},
 				nocache: function(b) {
@@ -639,103 +646,115 @@ var Ajax = (function() {
 				cache: function(b) {
 					if( !arguments.length) b = true;
 					if( typeof(b) != 'boolean' ) return this;
-					config.cache = b;
+					options.cache = b;
 					return this;
 				},
 				parse: function(b) {
 					if( !arguments.length) b = true;
 					if( typeof(b) != 'boolean' ) return this;
-					config.parse = b;
+					options.parse = b;
 					return this;
 				},
 				sync: function(b) {
 					if( !arguments.length) b = true;
 					if( typeof(b) != 'boolean' ) return this;
-					config.sync = b;
+					options.sync = b;
 					return this;
 				},
 				url: function(url) {
 					if( !url ) return this;
-					config.url = url;
+					options.url = url;
 					return this;
 				},
 				contentType: function(type) {
-					config.contentType = type;
+					options.contentType = type;
+					return this;
+				},
+				responseType: function(type) {
+					options.responseType = type;
+					return this;
+				},
+				blobType: function(type) {
+					options.blobType = type;
+					return this;
+				},
+				env: function(env) {
+					options.env = env;
 					return this;
 				},
 				charset: function(charset) {
-					config.charset = charset;
+					options.charset = charset;
 					return this;
 				},
 				accept: function(accept) {
-					config.accept = accept;
+					options.accept = accept;
 					return this;
 				},
+				content: function(content) {
+					options.payload = content;
+				},
 				post: function(payload) {
-					config.method = 'post';
-					if( payload ) config.payload = payload;
-					else config.payload = null;
+					options.method = 'post';
+					if( payload ) options.payload = payload;
 					return this;
 				},
 				put: function(payload) {
-					config.method = 'put';
-					if( payload ) config.payload = payload;
-					else config.payload = null;
+					options.method = 'put';
+					if( payload ) options.payload = payload;
 					return this;
 				},
 				get: function(payload) {
-					config.method = 'get';
-					if( payload ) config.payload = payload;
-					else config.payload = null;
+					options.method = 'get';
+					if( payload ) options.payload = payload;
 					return this;
 				},
 				options: function(payload) {
-					config.method = 'options';
-					if( payload ) config.payload = payload;
-					else config.payload = null;
+					options.method = 'options';
+					if( payload ) options.payload = payload;
 					return this;
 				},
 				del: function(payload) {
-					config.method = 'delete';
-					if( payload ) config.payload = payload;
-					else config.payload = null;
-					return this;
-				},
-				interceptor: function(fn) {
-					config.interceptor = fn;
+					options.method = 'delete';
+					if( payload ) options.payload = payload;
 					return this;
 				},
 				listeners: function(listeners) {
-					if( listeners.success ) config.success = listeners.success;
-					if( listeners.error ) config.error = listeners.error;
-					if( listeners.done ) config.done = listeners.done;
+					if( listeners.success ) options.success = listeners.success;
+					if( listeners.error ) options.error = listeners.error;
+					if( listeners.done ) options.done = listeners.done;
 
 					return this;
 				},
 				scope: function(scope) {
-					config.scope = scope;
+					options.scope = scope;
 					return this;
 				},
 				
 				// execute
 				execute: function() {
-					if( handler ) throw new AjaxError('already executed');
-					return execute();
+					execute();
+					return payload;
 				},
 				done: function(fn) {
-					if( !handler ) execute();
-					handler.done(fn);
-					return handler;
+					if( !executed ) execute();
+					committer({
+						done: fn
+					});
+					return this;
 				},
 				success: function(fn) {
-					if( !handler ) execute();
-					handler.success(fn);
-					return handler;
+					if( !executed ) execute();
+					committer({
+						success: fn
+					});
+					return this;
 				},
 				error: function(fn) {
-					if( !handler ) execute();
-					handler.error(fn);
-					return handler;
+					if( !executed ) execute();
+					committer({
+						error: fn
+					});
+					return this;
 				}
 			};
 		}
@@ -752,7 +771,7 @@ var Require = (function() {
 
 	// privates
 	// create new require environment for each module
-	function createRequire(src) {
+	function createRequire(src) {		
 		src = Path.join(current_uri, src) || current_uri;
 		src = Path.dir(src);
 		return (function(base) {
@@ -786,7 +805,6 @@ var Require = (function() {
 	function eval_as_module(script, src) {
 		// closure variables clear prepare for a possible illegal access in inner modules
 		//var document = null, Element = null, window = null, $ = null, $$ = null;
-		
 		src = src || current_uri;
 		
 		var exports = {};

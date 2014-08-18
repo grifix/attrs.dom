@@ -20,6 +20,15 @@
 
 <script type="text/javascript">
 	(function() {
+		function getRandomColor() {
+		    var letters = '0123456789ABCDEF'.split('');
+		    var color = '#';
+		    for (var i = 0; i < 6; i++ ) {
+		        color += letters[Math.floor(Math.random() * 16)];
+		    }
+		    return color;
+		}
+		
 		console.log('document.URL', document.URL);
 		console.log('document.currentScript.ownerDocument.URL', document.currentScript.ownerDocument.URL);
 		console.log('document.currentScript.ownerDocument.baseURI', document.currentScript.ownerDocument.baseURI);
@@ -30,7 +39,7 @@
 		console.log('document.currentScript.ownerDocument', document.currentScript.ownerDocument);
 	
 		var doc = document.currentScript.ownerDocument;
-		var $ = require('attrs.dom').branch(doc);
+		var $ = require('attrs.dom').current();
 		
 		console.log('doc.querySelectorAll("div")', doc.querySelectorAll('div'));
 		console.log('doc.querySelectorAll("template")', doc.querySelectorAll('template'));
@@ -54,7 +63,7 @@
 			setTimeout(function() {
 				console.log('$("div")', $('div'));
 				console.log('doc.querySelectorAll("div")', doc.querySelectorAll('div'));
-				div.css('border', '1px dotted yellow');
+				div.css('border', '1px dotted ' + getRandomColor());
 			}, 1000);
 		});
 	})();

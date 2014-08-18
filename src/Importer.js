@@ -175,114 +175,125 @@ var Importer = (function() {
 	    }
 	}*/
 		
-	function resolveScript(ownerDocument, script) {
+	function resolveScript(script) {
 		var src = script.getAttribute('src');
 		var text = script.nodeValue || script.textContent;
 		var type = script.type || script.getAttribute('type');
 
 		if( type && type.trim().toLowerCase() !== 'text/javascript' ) return;
-									
-		var original_ownerDocument, original_currentScript;
-	
-		if( Object.getOwnPropertyDescriptor ) {
-			original_ownerDocument = Object.getOwnPropertyDescriptor(script, 'ownerDocument');
-			original_currentScript = Object.getOwnPropertyDescriptor(document, 'currentScript');
-		} else {
-			original_ownerDocument = script.ownerDocument;
-			original_currentScript = document.currentScript;
-		}
 		
-		var doc = ownerDocument;
-		
-		// make currentScript & ownerDocument
-		if( !script.ownerDocument ) {
-			if( Object.defineProperty ) {
-				try {
-					Object.defineProperty(script, 'ownerDocument', {
-						configurable: true,
-						get: function() {
-							return doc;
-						}
-					});
-				} catch(e) {
-					script.ownerDocument = doc;
-				}
-			} else {		
-				script.ownerDocument = doc;
-			}
-		}
-		
-		if( !document.currentScript ) {
-			if( Object.defineProperty ) {									
+		var setcurrentscript = function(script) {
+			if( Object.getOwnPropertyDescriptor ) {
 				Object.defineProperty(document, 'currentScript', {
 					configurable: true,
-					get: function() {
-						return script;
-					}
+					writable: false,
+					value: script
 				});
+				document._currentScript = script;
 			} else {
 				document.currentScript = script;
+				document._currentScript = script;
 			}
+			//console.log('script.currentScript', document.currentScript);
+			//console.log('script._currentScript', document._currentScript);
 		}
-	
+		
 		// execute
 		if( src ) {
-			console.log('remote', src);
 			var async = script.getAttribute('async');
 			if( async === '' || async ) async = true;
 			var charset = script.getAttribute('charset');
 			Ajax.ajax({
+				method: 'GET',
 				url: src,
 				sync: !async,
 				charset: charset,
 			}).done(function(err, text) {
 				//if( err ) return console.error(err);
+				setcurrentscript(script);
 				if( !err ) window.__evalscript__(text);
+				setcurrentscript(null);
 			});
 		} else if( text ) {
+			setcurrentscript(script);
 			window.__evalscript__(text);
+			setcurrentscript(null);
 		}
 	
-		if( Object.defineProperty ) {
-			if( original_ownerDocument ) Object.defineProperty(script, 'ownerDocument', original_ownerDocument);
-			if( original_currentScript ) Object.defineProperty(document, 'currentScript', original_currentScript);
-			
-			script = null;
-			doc = null;
-		} else {
-			script.ownerDocument = original_ownerDocument;
-			document.currentScript = original_currentScript;
-		}
+		
 	}
 	
-	function createDocument(options) {
-		var doc;
-		
+	function processDocument(doc, options) {		
 		if( typeof(options) === 'string' ) options = {contents:options};
 		
 		options = options || {};
-		var contents = options.contents || '';
-		var noscript = options.noscript;
-		var url = Path.join(location.href, (options.url || location.href));
+		var url = Path.join(location.href, (options.url || doc.URL || location.href));
 		var uri = Path.uri(url);
-		var base = Path.dir(url);
+		var base = Path.dir(url);		
 		
-		if( false ) {
-			var req = new XMLHttpRequest;
-			req.open('GET', 'partials/partial.html', true);
-			/*if (req.overrideMimeType) {
-				req.overrideMimeType('application/xml');
-			}*/
-			req.onreadystatechange = function() {
-				if (this.readyState == 4) {
-					var doc = this.responseXML;
-					console.debug('result', doc, doc.URL);
-				}
-			}
-			req.responseType = 'document';
-			req.send(null);
+		if( typeof(options.before) === 'function' ) {
+			options.before(doc);
 		}
 		
+		var headflag = [];
+		var head = doc.head && doc.head.childNodes;
+		if( head && head.length ) {
+			head = Array.prototype.slice.call(head);
+			head.forEach(function(el) {
+				doc.head.removeChild(el);
+				headflag.push(el);
+			});
+		}
+		
+		var bodyflag = [];
+		var body = doc.body && doc.body.childNodes;
+		if( body && body.length ) {
+			body = Array.prototype.slice.call(body);
+			body.forEach(function(el) {
+				doc.body.removeChild(el);
+				bodyflag.push(el);
+			});
+		}
+		
+		// let's write & execute
+		var fill = function(flag, target) {
+			flag.forEach(function(el) {
+				var tag = el.tagName && el.tagName.toLowerCase();
+			
+				// fixlink src & href
+				if( tag && base ) {
+					var arg = Array.prototype.slice.call(el.querySelectorAll('*'));
+					arg.push(el);
+				
+					arg.forEach(function(sub) {
+						var src = sub.getAttribute('src');
+						var href = sub.getAttribute('href');
+						if( src && !src.startsWith('#') ) sub.setAttribute('src', Path.join(base, src));			
+						if( href && !href.startsWith('#') ) sub.setAttribute('href', Path.join(base, href));
+					});
+				}
+				
+				if( tag === 'script' ) {
+					resolveScript(el);
+				}
+			
+				target.appendChild(el);
+			});
+		};
+		
+		fill(headflag, doc.head);
+		fill(bodyflag, doc.body);
+					
+       	var event = doc.createEvent('Event');
+		event.initEvent('DOMContentLoaded', true, true);
+		doc.dispatchEvent(event);
+	
+		if( typeof(options.after) === 'function' ) {
+			options.after(doc);
+		}
+	}
+	
+	function createDocument(url, contents) {
 		if( !Device.is('webkit') && window.DOMParser ) {
 			var parser = new DOMParser();
 			doc = parser.parseFromString(contents, "text/html");
@@ -333,78 +344,6 @@ var Importer = (function() {
 			doc.documentURI = url;
 		}
 		
-		if( noscript !== true ) {
-			if( typeof(options.before) === 'function' ) {
-				options.before(doc);
-			}
-			
-			var headflag = [];
-			var head = doc.head && doc.head.childNodes;
-			if( head && head.length ) {
-				head = Array.prototype.slice.call(head);
-				head.forEach(function(el) {
-					doc.head.removeChild(el);
-					headflag.push(el);
-				});
-			}
-			
-			var bodyflag = [];
-			var body = doc.body && doc.body.childNodes;
-			if( body && body.length ) {
-				body = Array.prototype.slice.call(body);
-				body.forEach(function(el) {
-					doc.body.removeChild(el);
-					bodyflag.push(el);
-				});
-			}
-			
-			// let's write & execute
-			var fill = function(flag, target) {
-				flag.forEach(function(el) {
-					var tag = el.tagName && el.tagName.toLowerCase();
-				
-					// fixlink src & href
-					if( tag && base ) {
-						var arg = Array.prototype.slice.call(el.querySelectorAll('*'));
-						arg.push(el);
-					
-						arg.forEach(function(sub) {
-							var src = sub.getAttribute('src');
-							var href = sub.getAttribute('href');
-							if( src && !src.startsWith('#') ) sub.setAttribute('src', Path.join(base, src));			
-							if( href && !href.startsWith('#') ) sub.setAttribute('href', Path.join(base, href));
-						});
-					}
-					
-					if( tag === 'template' ) {
-						el.style.display = 'none';
-					} else if( tag === 'script' ) {
-						resolveScript(doc, el);
-					} else if( tag === 'style' ) {
-						document.head.appendChild(el.cloneNode(true));
-					} else if( tag === 'link' ) {
-						var rel = (el.getAttribute('rel') || '').toLowerCase().trim();
-						if( rel === 'stylesheet' ) {
-							document.head.appendChild(el.cloneNode(true));
-						}
-					}
-				
-					target.appendChild(el);
-				});
-			};
-			
-			fill(headflag, doc.head);
-			fill(bodyflag, doc.body);
-						
-	       	var event = doc.createEvent('Event');
-			event.initEvent('DOMContentLoaded', true, true);
-			doc.dispatchEvent(event);
-		
-			if( typeof(options.after) === 'function' ) {
-				options.after(doc);
-			}
-		}
-		
 		return doc;
 	}
 	
@@ -414,14 +353,20 @@ var Importer = (function() {
 		load: function(options) {
 			if( typeof(options) === 'string' ) options = {url:options};
 			
-			//options.responseType = 'document';
 			var src = options.url;
-						
+			
 			return {
 				done: function(callback) {
-					return Ajax.ajax(options).done(function(err, data) {						
+					return Ajax.html(options).done(function(err, doc, xhr) {						
 						if( err ) return callback(err);
-						callback(null, createDocument({contents:data, url:src}));
+						
+						if( doc.nodeType !== 9 ) doc = createDocument(src, xhr.responseText);
+						
+						processDocument(doc, {
+							url: src
+						});
+						
+						callback(null, doc);
 					});
 				}
 			};
@@ -459,6 +404,17 @@ SelectorBuilder.fn['import'] = function(options, callback) {
 				
 				var el = $(this);
 				if( options.append !== true ) el.empty();
+				
+				console.log('doc.head', doc.head);
+				
+				if( doc.head ) {
+					var head = doc.head;
+					var styles = $(head.querySelectorAll('style'));
+					styles.appendTo(document.head);
+					
+					var stylesheets = $(head.querySelectorAll('link[rel="stylesheet"]'));
+					stylesheets.appendTo(document.head);
+				}
 				
 				el.append(doc.body.childNodes);
 			};
