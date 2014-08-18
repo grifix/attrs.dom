@@ -454,7 +454,7 @@ var SelectorBuilder = (function() {
 	
 		var __root__ = {};
 		function Selector(selector, criteria, single) {
-			if( selector === ':root' ) selector = Selector.root;
+			if( !arguments.length || selector === ':root' ) selector = Selector.root;
 			
 			if( selector && selector.nodeType === 9 ) return SelectorBuilder(selector);
 			else if( selector === document || selector === window ) return Selector;
@@ -471,7 +471,7 @@ var SelectorBuilder = (function() {
 		Selector.plugins.$ = Selector;
 		Selector.builder = SelectorBuilder;
 		Selector.branch = function(doc) {
-			if( !doc ) return SelectorBuilder(document);	
+			if( !doc ) return console.error('illegal arguments', doc);	
 			if( doc && doc.nodeType === 9 ) return SelectorBuilder(doc);
 			
 			if( typeof(doc) === 'string' ) {
@@ -487,6 +487,10 @@ var SelectorBuilder = (function() {
 			} else {
 				return console.error('illegal argument', doc);
 			}
+		};
+		
+		Selector.current = function() {
+			return SelectorBuilder((document.currentScript && document.currentScript.ownerDocument) || document)
 		};
 		
 		Selector.create = function() {
@@ -1172,7 +1176,7 @@ var SelectorBuilder = (function() {
 		};
 	
 		fn.children = function(selector) {
-			var arr = this.$().owner(this);
+			var arr = this.$([]).owner(this);
 			this.each(function() {
 				if( !isElement(this) ) return;
 				
@@ -1185,7 +1189,7 @@ var SelectorBuilder = (function() {
 	
 		fn.contents = function(newcontents) {
 			if( !arguments.length ) {
-				var arr = this.$().owner(this);
+				var arr = this.$([]).owner(this);
 				this.each(function() {
 					if( !isElement(this) ) return;
 					
@@ -1490,7 +1494,7 @@ var SelectorBuilder = (function() {
 				return this.template;
 			},
 			children: function(selector) {
-				var arr = this.host.$();
+				var arr = this.host.$([]);
 				this.slots().each(function() {
 					if( !isElement(this) ) return;
 			
@@ -1500,7 +1504,7 @@ var SelectorBuilder = (function() {
 			},
 			contents: function(newcontents) {
 				if( !arguments.length ) {
-					var arr = this.host.$();
+					var arr = this.host.$([]);
 					this.slots().each(function() {
 						if( !isElement(this) ) return;
 				
@@ -1833,13 +1837,15 @@ var SelectorBuilder = (function() {
 						}
 					}
 					
-					if( !e.detail ) e.detail = values;
+					try {
+						if( !e.detail ) e.detail = values;
 					
-					if( values && (!window.Event || !(values instanceof Event)) && typeof(values) === 'object' ) { 
-						for(var k in values) e[k] = values[k];
-					}
+						if( values && (!window.Event || !(values instanceof Event)) && typeof(values) === 'object' ) { 
+							for(var k in values) e[k] = values[k];
+						}
 					
-					e.src = this;
+						e.src = this;
+					} catch(e) {}
 					
 					if( el.dispatchEvent ) {
 						el.dispatchEvent(e);

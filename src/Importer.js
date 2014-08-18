@@ -418,28 +418,7 @@ var Importer = (function() {
 			var src = options.url;
 						
 			return {
-				done: function(callback, async) {
-					if( async === true ) return this.async(callback);
-					else return this.sync(callback);
-				},
-				sync: function(callback) {
-					options.sync = true;
-					
-					var result;
-					Ajax.ajax(options).done(function(err, data) {
-						if( typeof(callback) === 'function' ) {
-							if( err ) return callback(err);
-						
-							result = createDocument({contents:data, url:src});
-							callback(null, result);
-						} else {
-							if( err ) throw err;
-							else result = createDocument({contents:data, url:src});
-						}
-					});
-					return result;
-				},
-				async: function(callback) {
+				done: function(callback) {
 					return Ajax.ajax(options).done(function(err, data) {						
 						if( err ) return callback(err);
 						callback(null, createDocument({contents:data, url:src}));
@@ -456,14 +435,14 @@ SelectorBuilder.staticfn.newDocument = function() {
 	var doc = Importer.createDocument.apply(this, arguments);
 	return SelectorBuilder(doc);
 };
-SelectorBuilder.staticfn.import = function(options, callback, async) {
+SelectorBuilder.staticfn.import = function(options, callback) {
 	Importer.load(options).done(function(err, doc, xhr) {
 		if( err ) return callback(err);		
 		callback(null, doc);
-	}, async);
+	});
 };
 
-SelectorBuilder.fn['import'] = function(options, callback, async) {
+SelectorBuilder.fn['import'] = function(options, callback) {
 	"use strict";
 	
 	var $ = this.$;
@@ -475,18 +454,20 @@ SelectorBuilder.fn['import'] = function(options, callback, async) {
 		if( typeof(callback) !== 'function' ) {
 			callback = function(err, doc) {
 				if( err ) return console.error(err.message);
-				if( !doc.body || !doc.body.childNodes.length ) console.warn('body was empty', doc, el);
+				
+				if( !doc.body || !doc.body.childNodes.length ) return console.warn('body was empty', options, doc, el);
+				
+				var el = $(this);
+				if( options.append !== true ) el.empty();
+				
+				el.append(doc.body.childNodes);
 			};
 		}
 		
 		Importer.load(options).done(function(err, doc, xhr) {
-			if( err ) return callback(err);
-			if( doc.body && doc.body.childNodes.length ) {
-				//var body = document.adoptNode(doc.body);
-				$(el).append(doc.body.childNodes);
-			}
+			if( err ) return callback.apply(el, arguments);
 			
-			callback(null, doc);
+			callback.apply(el, arguments);
 			
 			if( err ) {
 				$(el).fire('importerror', {
@@ -500,6 +481,6 @@ SelectorBuilder.fn['import'] = function(options, callback, async) {
 					xhr: xhr
 				});
 			}
-		}, async);
+		});
 	});
 };

@@ -3,7 +3,7 @@
  * 
  * @author: joje (https://github.com/joje6)
  * @version: 0.1.0
- * @date: 2014-08-18 5:16:21
+ * @date: 2014-08-18 20:55:55
 */
 
 /*!
@@ -3094,7 +3094,7 @@ var SelectorBuilder = (function() {
 	
 		var __root__ = {};
 		function Selector(selector, criteria, single) {
-			if( selector === ':root' ) selector = Selector.root;
+			if( !arguments.length || selector === ':root' ) selector = Selector.root;
 			
 			if( selector && selector.nodeType === 9 ) return SelectorBuilder(selector);
 			else if( selector === document || selector === window ) return Selector;
@@ -3111,7 +3111,7 @@ var SelectorBuilder = (function() {
 		Selector.plugins.$ = Selector;
 		Selector.builder = SelectorBuilder;
 		Selector.branch = function(doc) {
-			if( !doc ) return SelectorBuilder(document);	
+			if( !doc ) return console.error('illegal arguments', doc);	
 			if( doc && doc.nodeType === 9 ) return SelectorBuilder(doc);
 			
 			if( typeof(doc) === 'string' ) {
@@ -3127,6 +3127,10 @@ var SelectorBuilder = (function() {
 			} else {
 				return console.error('illegal argument', doc);
 			}
+		};
+		
+		Selector.current = function() {
+			return SelectorBuilder((document.currentScript && document.currentScript.ownerDocument) || document)
 		};
 		
 		Selector.create = function() {
@@ -3812,7 +3816,7 @@ var SelectorBuilder = (function() {
 		};
 	
 		fn.children = function(selector) {
-			var arr = this.$().owner(this);
+			var arr = this.$([]).owner(this);
 			this.each(function() {
 				if( !isElement(this) ) return;
 				
@@ -3825,7 +3829,7 @@ var SelectorBuilder = (function() {
 	
 		fn.contents = function(newcontents) {
 			if( !arguments.length ) {
-				var arr = this.$().owner(this);
+				var arr = this.$([]).owner(this);
 				this.each(function() {
 					if( !isElement(this) ) return;
 					
@@ -4130,7 +4134,7 @@ var SelectorBuilder = (function() {
 				return this.template;
 			},
 			children: function(selector) {
-				var arr = this.host.$();
+				var arr = this.host.$([]);
 				this.slots().each(function() {
 					if( !isElement(this) ) return;
 			
@@ -4140,7 +4144,7 @@ var SelectorBuilder = (function() {
 			},
 			contents: function(newcontents) {
 				if( !arguments.length ) {
-					var arr = this.host.$();
+					var arr = this.host.$([]);
 					this.slots().each(function() {
 						if( !isElement(this) ) return;
 				
@@ -4473,13 +4477,15 @@ var SelectorBuilder = (function() {
 						}
 					}
 					
-					if( !e.detail ) e.detail = values;
+					try {
+						if( !e.detail ) e.detail = values;
 					
-					if( values && (!window.Event || !(values instanceof Event)) && typeof(values) === 'object' ) { 
-						for(var k in values) e[k] = values[k];
-					}
+						if( values && (!window.Event || !(values instanceof Event)) && typeof(values) === 'object' ) { 
+							for(var k in values) e[k] = values[k];
+						}
 					
-					e.src = this;
+						e.src = this;
+					} catch(e) {}
 					
 					if( el.dispatchEvent ) {
 						el.dispatchEvent(e);
@@ -5626,28 +5632,7 @@ var Importer = (function() {
 			var src = options.url;
 						
 			return {
-				done: function(callback, async) {
-					if( async === true ) return this.async(callback);
-					else return this.sync(callback);
-				},
-				sync: function(callback) {
-					options.sync = true;
-					
-					var result;
-					Ajax.ajax(options).done(function(err, data) {
-						if( typeof(callback) === 'function' ) {
-							if( err ) return callback(err);
-						
-							result = createDocument({contents:data, url:src});
-							callback(null, result);
-						} else {
-							if( err ) throw err;
-							else result = createDocument({contents:data, url:src});
-						}
-					});
-					return result;
-				},
-				async: function(callback) {
+				done: function(callback) {
 					return Ajax.ajax(options).done(function(err, data) {						
 						if( err ) return callback(err);
 						callback(null, createDocument({contents:data, url:src}));
@@ -5664,14 +5649,14 @@ SelectorBuilder.staticfn.newDocument = function() {
 	var doc = Importer.createDocument.apply(this, arguments);
 	return SelectorBuilder(doc);
 };
-SelectorBuilder.staticfn.import = function(options, callback, async) {
+SelectorBuilder.staticfn.import = function(options, callback) {
 	Importer.load(options).done(function(err, doc, xhr) {
 		if( err ) return callback(err);		
 		callback(null, doc);
-	}, async);
+	});
 };
 
-SelectorBuilder.fn['import'] = function(options, callback, async) {
+SelectorBuilder.fn['import'] = function(options, callback) {
 	"use strict";
 	
 	var $ = this.$;
@@ -5683,18 +5668,20 @@ SelectorBuilder.fn['import'] = function(options, callback, async) {
 		if( typeof(callback) !== 'function' ) {
 			callback = function(err, doc) {
 				if( err ) return console.error(err.message);
-				if( !doc.body || !doc.body.childNodes.length ) console.warn('body was empty', doc, el);
+				
+				if( !doc.body || !doc.body.childNodes.length ) return console.warn('body was empty', options, doc, el);
+				
+				var el = $(this);
+				if( options.append !== true ) el.empty();
+				
+				el.append(doc.body.childNodes);
 			};
 		}
 		
 		Importer.load(options).done(function(err, doc, xhr) {
-			if( err ) return callback(err);
-			if( doc.body && doc.body.childNodes.length ) {
-				//var body = document.adoptNode(doc.body);
-				$(el).append(doc.body.childNodes);
-			}
+			if( err ) return callback.apply(el, arguments);
 			
-			callback(null, doc);
+			callback.apply(el, arguments);
 			
 			if( err ) {
 				$(el).fire('importerror', {
@@ -5708,7 +5695,7 @@ SelectorBuilder.fn['import'] = function(options, callback, async) {
 					xhr: xhr
 				});
 			}
-		}, async);
+		});
 	});
 };
 
@@ -7756,10 +7743,12 @@ var Items = (function() {
 	};
 	
 	fn.items = function(data, append, index) {
+		var $ = this.$;
 		if( !arguments.length ) {
 			var arr = [];
 			this.each(function() {
-				arr.push(this.items);					
+				var items = this.items = this.items || new Items($(this));
+				arr.push(items);					
 			});
 			return array_return(arr);
 		}

@@ -277,10 +277,12 @@ var Items = (function() {
 	};
 	
 	fn.items = function(data, append, index) {
+		var $ = this.$;
 		if( !arguments.length ) {
 			var arr = [];
 			this.each(function() {
-				arr.push(this.items);					
+				var items = this.items = this.items || new Items($(this));
+				arr.push(items);					
 			});
 			return array_return(arr);
 		}
