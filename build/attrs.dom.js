@@ -3,7 +3,7 @@
  * 
  * @author: joje (https://github.com/joje6)
  * @version: 0.1.0
- * @date: 2014-08-19 5:16:2
+ * @date: 2014-08-19 5:20:37
 */
 
 /*!
@@ -5636,8 +5636,6 @@ SelectorBuilder.fn['import'] = function(options, callback) {
 				
 				var el = $(this);
 				if( options.append !== true ) el.empty();
-				
-				console.log('doc.head', doc.head);
 				
 				if( doc.head ) {
 					var head = doc.head;

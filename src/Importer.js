@@ -405,8 +405,6 @@ SelectorBuilder.fn['import'] = function(options, callback) {
 				var el = $(this);
 				if( options.append !== true ) el.empty();
 				
-				console.log('doc.head', doc.head);
-				
 				if( doc.head ) {
 					var head = doc.head;
 					var styles = $(head.querySelectorAll('style'));
