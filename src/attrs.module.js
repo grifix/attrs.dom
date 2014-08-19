@@ -3,7 +3,7 @@
  * 
  * @author: joje (https://github.com/joje6)
  * @version: 0.1.0
- * @date: 2014-08-19 5:10:5
+ * @date: 2014-08-19 15:56:46
 */
 
 (function() {
@@ -324,12 +324,15 @@ console.log('host(ftp://a.b.c.com:8080/a/b/c)', Path.host('ftp://a.b.c.com:8080/
 */
 
 // eval script in global scope
-function eval_in_global(script, env) {
-	with(env || {}) {
-		var result;
-		eval('result = (function() {\n' + script + '\n})();');
-		return result;
-	}
+function toEvalFunction(script) {
+	return function(env) {
+		env = env || {};
+		if( !env.exports ) env.exports = {};
+		with(env) {
+			eval('(function(module) {\n' + script + '\n}).call(this, env);');
+		}
+		return env;
+	};
 }
 
 var Ajax = (function() {
@@ -348,17 +351,16 @@ var Ajax = (function() {
 	}
 	
 	function createHTMLDocument(url, contents) {
-		if( !Device.is('webkit') && window.DOMParser ) {
-			var parser = new DOMParser();
-			doc = parser.parseFromString(contents, "text/html");
-			//WARN: DOMParser 로 초기화된 document 는 webkit 에서 dispatchEvent 가 먹히지 않는다. chrome/safari X, ff O
-		}
-		
+		var doc;
 		if( !doc && document.implementation && document.implementation.createHTMLDocument ) {
 			doc = document.implementation.createHTMLDocument('noname');
 			doc.open();
 			doc.write(contents);
 			doc.close();
+		} else if( window.DOMParser ) {
+			var parser = new DOMParser();
+			doc = parser.parseFromString(contents, "text/html");
+			//WARN: DOMParser 로 초기화된 document 는 webkit 에서 dispatchEvent 가 먹히지 않는다. chrome/safari X, ff O
 		} else if( window.ActiveXObject ) {
 			doc = new ActiveXObject("htmlfile");
 			doc.open();
@@ -418,6 +420,86 @@ var Ajax = (function() {
 
 		return s;
 	}
+	
+	function parse(url, xhr, responseType, blobType) {
+		var payload;
+		
+		if( responseType === 'text' ) {
+			payload = xhr.response || xhr.responseText;
+		} else if( responseType === 'document' || responseType === 'html' ) {
+			payload = xhr.responseXML || createHTMLDocument(url, xhr.responseText);
+		} else if( responseType === 'base64' ) {
+			var encoded = null;
+			try {
+				var data;
+				if( false && window.Uint8Array ) {
+					var uInt8Array = new Uint8Array(xhr.response);
+				    var byte3 = uInt8Array[4]; 
+
+				    var bb = new WebKitBlobBuilder();
+				    bb.append(xhr.response);
+				    var blob = bb.getBlob('image/png'); 
+				    var base64 = window.btoa(blob);
+				    alert(base64);
+				} else {
+					var bin = '';
+					for (var responseText = xhr.responseText, responseTextLen = responseText.length, i = 0; i < responseTextLen; ++i) {
+						bin += String.fromCharCode(responseText.charCodeAt(i) & 255)
+					}					
+					data = btoa(bin);
+				}
+				
+				if( data ) payload = 'data:' + (blobType || xhr.getResponseHeader('Content-Type')) + ';base64,' + btoa(data);
+			} catch(e) {
+				console.error('base64 encoding error(' + url + ')', e.message);
+			}
+		} else if( responseType === 'blob' ) {
+			payload = (window.Blob) ? new Blob([xhr.response], {type: blobType || xhr.getResponseHeader('Content-Type') || 'application/octet-binary'}) : xhr.response;
+		} else if( responseType === 'xml' ) {
+			payload = xhr.responseXML || createXMLDocument(xhr.responseText);
+		} else if( responseType === 'jsone' ) {
+			try {
+				eval('payload = ' + xhr.responseText);
+			} catch(e) {
+				console.error('json parse error:', e.message, '[in ' + options.url + ']');
+				err = e;
+			}
+		} else if( responseType === 'json' ) {
+			try {
+				payload = xhr.response || JSON.parse(xhr.responseText);
+				
+				try {
+					if( typeof(payload) === 'string' ) payload = JSON.parse(payload);
+				} catch(e) {
+					try {
+						eval('payload = ' + payload);
+					} catch(e) {
+						console.error('json parse error:', e.message, '[in ' + options.url + ']');
+						err = e;
+					}
+				}
+			} catch(e) {
+				try {
+					eval('payload = ' + xhr.responseText);
+				} catch(e) {
+					console.error('json parse error:', e.message, '[in ' + options.url + ']');
+					err = e;
+				}
+			}
+		} else if( responseType === 'script' ) {
+			try {
+				var fn = toEvalFunction(xhr.responseText);
+				payload = fn;
+			} catch(e) {
+				console.error('script error:', e.message, '[in ' + options.url + ']');
+				err = e;
+			}
+		} else {
+			payload = xhr.response || xhr.responseXML || xhr.responseText;
+		}
+		
+		return payload;
+	}
 
 	// class ajax
 	var Ajax = function() {};
@@ -458,6 +540,11 @@ var Ajax = (function() {
 			url.responseType = 'xml';			
 			return this.get(url, cache);
 		},
+		base64: function(url, cache, fn) {
+			if( typeof(url) === 'string' ) url = {url: url};
+			url.responseType = 'base64';			
+			return this.get(url, cache);
+		},
 		blob: function(url, cache, fn) {
 			if( typeof(url) === 'string' ) url = {url: url};
 			url.responseType = 'blob';			
@@ -465,12 +552,13 @@ var Ajax = (function() {
 		},
 		ajax: function(options) {
 			if( typeof(options) === 'string' ) {
-				url = {
-					method: 'get',
-					sync: false,
-					responseType: 'text'
+				options = {
+					url: options,
+					method: 'get'
 				};
 			}
+			
+			if( !options.method ) options.method = 'get';
 			
 			if( typeof(options.url) !== 'string' ) return console.error('invalid url', options.url);
 			
@@ -492,8 +580,9 @@ var Ajax = (function() {
 					}
 					
 					var scope = options.scope || self;
-					var responseType = options.responseType || 'text';
+					var responseType = options.responseType;
 					var contentType = xhr.getResponseHeader('Content-Type');
+					var type = responseType;
 					
 					var err;
 					if( !(xhr.status == 200 || xhr.status == 204) ) {
@@ -501,51 +590,28 @@ var Ajax = (function() {
 					}
 				
 					if( !parsed ) {
-						if( responseType === 'text' ) {
-							payload = xhr.response || xhr.responseText;
-						} else if( responseType === 'document' ) {
-							payload = xhr.responseXML || createHTMLDocument(options.url, xhr.responseText);
-						} else if( responseType === 'blob' ) {
-							payload = new Blob([xhr.response], {type: options.blobType || contentType || 'application/octet-binary'});
-						} else if( responseType === 'xml' ) {
-							payload = xhr.responseXML || createXMLDocument(xhr.responseText);
-						} else if( responseType === 'jsone' ) {
-							try {
-								eval('payload = ' + xhr.responseText);
-							} catch(e) {
-								console.error('json parse error:', e.message, '[in ' + options.url + ']');
-								err = e;
-							}
-						} else if( responseType === 'json' ) {
-							try {
-								payload = xhr.response || JSON.parse(xhr.responseText);
-							} catch(e) {
-								try {
-									eval('payload = ' + xhr.responseText);
-								} catch(e) {
-									console.error('json parse error:', e.message, '[in ' + options.url + ']');
-									err = e;
-								}
-							}
-						} else if( responseType === 'script' ) {
-							try {
-								eval_in_global(xhr.responseText, options.env);
-								payload = options.env || {};
-							} catch(e) {
-								console.error('script error:', e.message, '[in ' + options.url + ']');
-								err = e;
-							}
-						} else {
-							err = 'unknown responseType:' + responseType;
+						if( responseType ) {
+							payload = parse(url, xhr, responseType, options.blobType);
+						} else {							
+							if( ~contentType.indexOf('/json') ) type = 'json';
+							else if( ~contentType.indexOf('/html') ) type = 'html';
+							else if( ~contentType.indexOf('/javascript') ) type = 'script';
+							else if( ~contentType.indexOf('/xml') ) type = 'xml';
+							else if( contentType.indexOf('image/') === 0 ) type = 'base64';
+							else type = 'text';
+							
+							//console.log('contentType', contentType, type);
+
+							payload = parse(url, xhr, type, options.blobType);
 						}
 						
 						parsed = true;
 					}
 					
 					function invokeListener(listeners) {
-						if( err && listeners.error ) listeners.error.call(scope, err, payload, xhr, responseType);
-						else if( !err && listeners.success ) listeners.success.call(scope, payload, xhr, responseType);					
-						if( listeners.done ) listeners.done.call(scope, err, payload, xhr, responseType);
+						if( err && listeners.error ) listeners.error.call(scope, err, payload, xhr, type);
+						else if( !err && listeners.success ) listeners.success.call(scope, payload, xhr, type);					
+						if( listeners.done ) listeners.done.call(scope, err, payload, xhr, type);
 					}
 					
 					if( queue.length ) {
@@ -615,14 +681,15 @@ var Ajax = (function() {
 					}
 					
 					if( o.payload ) {
+						var ct, payload = o.payload;
 						if( typeof(o.payload) === 'object' ) {
-							o.payload = JSON.stringify(o.payload);
-							o.contentType = 'application/json';
+							payload = JSON.stringify(payload);
+							ct = 'application/json';
 						}
 						
 						var charset = o.charset ? ('; charset=' + o.charset) : '';						
-						xhr.setRequestHeader('Content-Type', (o.contentType || 'application/x-www-form-urlencoded') + charset);
-						xhr.send(o.payload);
+						xhr.setRequestHeader('Content-Type', (o.contentType || ct || 'application/x-www-form-urlencoded') + charset);
+						xhr.send(payload);
 					} else {
 						xhr.send();
 					}
@@ -676,10 +743,6 @@ var Ajax = (function() {
 				},
 				blobType: function(type) {
 					options.blobType = type;
-					return this;
-				},
-				env: function(env) {
-					options.env = env;
 					return this;
 				},
 				charset: function(charset) {

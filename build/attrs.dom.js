@@ -3,7 +3,7 @@
  * 
  * @author: joje (https://github.com/joje6)
  * @version: 0.1.0
- * @date: 2014-08-19 5:20:37
+ * @date: 2014-08-19 17:48:8
 */
 
 /*!
@@ -11,7 +11,7 @@
  * 
  * @author: joje (https://github.com/joje6)
  * @version: 0.1.0
- * @date: 2014-08-19 5:10:5
+ * @date: 2014-08-19 15:56:46
 */
 
 (function() {
@@ -332,12 +332,15 @@ console.log('host(ftp://a.b.c.com:8080/a/b/c)', Path.host('ftp://a.b.c.com:8080/
 */
 
 // eval script in global scope
-function eval_in_global(script, env) {
-	with(env || {}) {
-		var result;
-		eval('result = (function() {\n' + script + '\n})();');
-		return result;
-	}
+function toEvalFunction(script) {
+	return function(env) {
+		env = env || {};
+		if( !env.exports ) env.exports = {};
+		with(env) {
+			eval('(function(module) {\n' + script + '\n}).call(this, env);');
+		}
+		return env;
+	};
 }
 
 var Ajax = (function() {
@@ -356,17 +359,16 @@ var Ajax = (function() {
 	}
 	
 	function createHTMLDocument(url, contents) {
-		if( !Device.is('webkit') && window.DOMParser ) {
-			var parser = new DOMParser();
-			doc = parser.parseFromString(contents, "text/html");
-			//WARN: DOMParser 로 초기화된 document 는 webkit 에서 dispatchEvent 가 먹히지 않는다. chrome/safari X, ff O
-		}
-		
+		var doc;
 		if( !doc && document.implementation && document.implementation.createHTMLDocument ) {
 			doc = document.implementation.createHTMLDocument('noname');
 			doc.open();
 			doc.write(contents);
 			doc.close();
+		} else if( window.DOMParser ) {
+			var parser = new DOMParser();
+			doc = parser.parseFromString(contents, "text/html");
+			//WARN: DOMParser 로 초기화된 document 는 webkit 에서 dispatchEvent 가 먹히지 않는다. chrome/safari X, ff O
 		} else if( window.ActiveXObject ) {
 			doc = new ActiveXObject("htmlfile");
 			doc.open();
@@ -426,6 +428,86 @@ var Ajax = (function() {
 
 		return s;
 	}
+	
+	function parse(url, xhr, responseType, blobType) {
+		var payload;
+		
+		if( responseType === 'text' ) {
+			payload = xhr.response || xhr.responseText;
+		} else if( responseType === 'document' || responseType === 'html' ) {
+			payload = xhr.responseXML || createHTMLDocument(url, xhr.responseText);
+		} else if( responseType === 'base64' ) {
+			var encoded = null;
+			try {
+				var data;
+				if( false && window.Uint8Array ) {
+					var uInt8Array = new Uint8Array(xhr.response);
+				    var byte3 = uInt8Array[4]; 
+
+				    var bb = new WebKitBlobBuilder();
+				    bb.append(xhr.response);
+				    var blob = bb.getBlob('image/png'); 
+				    var base64 = window.btoa(blob);
+				    alert(base64);
+				} else {
+					var bin = '';
+					for (var responseText = xhr.responseText, responseTextLen = responseText.length, i = 0; i < responseTextLen; ++i) {
+						bin += String.fromCharCode(responseText.charCodeAt(i) & 255)
+					}					
+					data = btoa(bin);
+				}
+				
+				if( data ) payload = 'data:' + (blobType || xhr.getResponseHeader('Content-Type')) + ';base64,' + btoa(data);
+			} catch(e) {
+				console.error('base64 encoding error(' + url + ')', e.message);
+			}
+		} else if( responseType === 'blob' ) {
+			payload = (window.Blob) ? new Blob([xhr.response], {type: blobType || xhr.getResponseHeader('Content-Type') || 'application/octet-binary'}) : xhr.response;
+		} else if( responseType === 'xml' ) {
+			payload = xhr.responseXML || createXMLDocument(xhr.responseText);
+		} else if( responseType === 'jsone' ) {
+			try {
+				eval('payload = ' + xhr.responseText);
+			} catch(e) {
+				console.error('json parse error:', e.message, '[in ' + options.url + ']');
+				err = e;
+			}
+		} else if( responseType === 'json' ) {
+			try {
+				payload = xhr.response || JSON.parse(xhr.responseText);
+				
+				try {
+					if( typeof(payload) === 'string' ) payload = JSON.parse(payload);
+				} catch(e) {
+					try {
+						eval('payload = ' + payload);
+					} catch(e) {
+						console.error('json parse error:', e.message, '[in ' + options.url + ']');
+						err = e;
+					}
+				}
+			} catch(e) {
+				try {
+					eval('payload = ' + xhr.responseText);
+				} catch(e) {
+					console.error('json parse error:', e.message, '[in ' + options.url + ']');
+					err = e;
+				}
+			}
+		} else if( responseType === 'script' ) {
+			try {
+				var fn = toEvalFunction(xhr.responseText);
+				payload = fn;
+			} catch(e) {
+				console.error('script error:', e.message, '[in ' + options.url + ']');
+				err = e;
+			}
+		} else {
+			payload = xhr.response || xhr.responseXML || xhr.responseText;
+		}
+		
+		return payload;
+	}
 
 	// class ajax
 	var Ajax = function() {};
@@ -466,6 +548,11 @@ var Ajax = (function() {
 			url.responseType = 'xml';			
 			return this.get(url, cache);
 		},
+		base64: function(url, cache, fn) {
+			if( typeof(url) === 'string' ) url = {url: url};
+			url.responseType = 'base64';			
+			return this.get(url, cache);
+		},
 		blob: function(url, cache, fn) {
 			if( typeof(url) === 'string' ) url = {url: url};
 			url.responseType = 'blob';			
@@ -473,12 +560,13 @@ var Ajax = (function() {
 		},
 		ajax: function(options) {
 			if( typeof(options) === 'string' ) {
-				url = {
-					method: 'get',
-					sync: false,
-					responseType: 'text'
+				options = {
+					url: options,
+					method: 'get'
 				};
 			}
+			
+			if( !options.method ) options.method = 'get';
 			
 			if( typeof(options.url) !== 'string' ) return console.error('invalid url', options.url);
 			
@@ -500,8 +588,9 @@ var Ajax = (function() {
 					}
 					
 					var scope = options.scope || self;
-					var responseType = options.responseType || 'text';
+					var responseType = options.responseType;
 					var contentType = xhr.getResponseHeader('Content-Type');
+					var type = responseType;
 					
 					var err;
 					if( !(xhr.status == 200 || xhr.status == 204) ) {
@@ -509,51 +598,28 @@ var Ajax = (function() {
 					}
 				
 					if( !parsed ) {
-						if( responseType === 'text' ) {
-							payload = xhr.response || xhr.responseText;
-						} else if( responseType === 'document' ) {
-							payload = xhr.responseXML || createHTMLDocument(options.url, xhr.responseText);
-						} else if( responseType === 'blob' ) {
-							payload = new Blob([xhr.response], {type: options.blobType || contentType || 'application/octet-binary'});
-						} else if( responseType === 'xml' ) {
-							payload = xhr.responseXML || createXMLDocument(xhr.responseText);
-						} else if( responseType === 'jsone' ) {
-							try {
-								eval('payload = ' + xhr.responseText);
-							} catch(e) {
-								console.error('json parse error:', e.message, '[in ' + options.url + ']');
-								err = e;
-							}
-						} else if( responseType === 'json' ) {
-							try {
-								payload = xhr.response || JSON.parse(xhr.responseText);
-							} catch(e) {
-								try {
-									eval('payload = ' + xhr.responseText);
-								} catch(e) {
-									console.error('json parse error:', e.message, '[in ' + options.url + ']');
-									err = e;
-								}
-							}
-						} else if( responseType === 'script' ) {
-							try {
-								eval_in_global(xhr.responseText, options.env);
-								payload = options.env || {};
-							} catch(e) {
-								console.error('script error:', e.message, '[in ' + options.url + ']');
-								err = e;
-							}
-						} else {
-							err = 'unknown responseType:' + responseType;
+						if( responseType ) {
+							payload = parse(url, xhr, responseType, options.blobType);
+						} else {							
+							if( ~contentType.indexOf('/json') ) type = 'json';
+							else if( ~contentType.indexOf('/html') ) type = 'html';
+							else if( ~contentType.indexOf('/javascript') ) type = 'script';
+							else if( ~contentType.indexOf('/xml') ) type = 'xml';
+							else if( contentType.indexOf('image/') === 0 ) type = 'base64';
+							else type = 'text';
+							
+							//console.log('contentType', contentType, type);
+
+							payload = parse(url, xhr, type, options.blobType);
 						}
 						
 						parsed = true;
 					}
 					
 					function invokeListener(listeners) {
-						if( err && listeners.error ) listeners.error.call(scope, err, payload, xhr, responseType);
-						else if( !err && listeners.success ) listeners.success.call(scope, payload, xhr, responseType);					
-						if( listeners.done ) listeners.done.call(scope, err, payload, xhr, responseType);
+						if( err && listeners.error ) listeners.error.call(scope, err, payload, xhr, type);
+						else if( !err && listeners.success ) listeners.success.call(scope, payload, xhr, type);					
+						if( listeners.done ) listeners.done.call(scope, err, payload, xhr, type);
 					}
 					
 					if( queue.length ) {
@@ -623,14 +689,15 @@ var Ajax = (function() {
 					}
 					
 					if( o.payload ) {
+						var ct, payload = o.payload;
 						if( typeof(o.payload) === 'object' ) {
-							o.payload = JSON.stringify(o.payload);
-							o.contentType = 'application/json';
+							payload = JSON.stringify(payload);
+							ct = 'application/json';
 						}
 						
 						var charset = o.charset ? ('; charset=' + o.charset) : '';						
-						xhr.setRequestHeader('Content-Type', (o.contentType || 'application/x-www-form-urlencoded') + charset);
-						xhr.send(o.payload);
+						xhr.setRequestHeader('Content-Type', (o.contentType || ct || 'application/x-www-form-urlencoded') + charset);
+						xhr.send(payload);
 					} else {
 						xhr.send();
 					}
@@ -684,10 +751,6 @@ var Ajax = (function() {
 				},
 				blobType: function(type) {
 					options.blobType = type;
-					return this;
-				},
-				env: function(env) {
-					options.env = env;
 					return this;
 				},
 				charset: function(charset) {
@@ -2271,6 +2334,14 @@ var Color = (function() {
 				b : this.hexToB(h)
 			};
 		},
+		random: function() {
+		    var letters = '0123456789ABCDEF'.split('');
+		    var color = '#';
+		    for (var i = 0; i < 6; i++ ) {
+		        color += letters[Math.floor(Math.random() * 16)];
+		    }
+		    return color;
+		},
 		changeAlpha: function(rgba, alpha) {
 			if( !rgba ) return null;
 
@@ -3114,8 +3185,7 @@ var SelectorBuilder = (function() {
 		function Selector(selector, criteria, single) {
 			if( !arguments.length || selector === ':root' ) selector = Selector.root;
 			
-			if( selector && selector.nodeType === 9 ) return SelectorBuilder(selector);
-			else if( selector === document || selector === window ) return Selector;
+			if( selector === window ) return Selector;
 			else if( selector !== __root__ ) return new Selection(selector, criteria, single);
 		}
 	
@@ -5188,24 +5258,26 @@ var SelectorBuilder = (function() {
 			});
 		};
 		
-		fn.load = function(options, fn) {
+		fn.load = function(options, fn, fn2) {
 			if( typeof(options) === 'string' ) options = {url:options};
 			
 			options.url = Path.join(this.document.URL || location.href, options.url);
 			options.sync = false;
-			options.cache = true;
+			
+			if( typeof(fn) === 'string' ) {
+				options.responseType = fn;
+				fn = fn2;
+			}
 			
 			var $ = this.$;
 			return this.each(function() {
 				var el = $(this);
-				Ajax.ajax(options).done(function(err, data, xhr) {
+				Ajax.ajax(options).done(function(err, data, xhr, type) {
 					if( err && typeof(fn) === 'function' ) return fn.apply(el[0], [err, data]);
-					
-					var contentType = normalizeContentType(xhr.getResponseHeader('content-type'), options.url);
-					
+										
 					var loader = el.data('loader');
 					if( typeof(fn || loader) === 'function' ) {
-						(fn || loader).apply(el[0], [err, data, contentType, options.url, xhr]);
+						(fn || loader).apply(el[0], [err, data, type, options.url, xhr]);
 					}
 					
 					if( err ) {
@@ -5217,7 +5289,8 @@ var SelectorBuilder = (function() {
 						el.fire('load', {
 							url: options.url,
 							data: data,
-							contentType: contentType,
+							parseType: type,
+							contentType: xhr.getResponseHeader('Content-Type'),
 							xhr: xhr
 						});
 					}
@@ -5525,7 +5598,9 @@ var Importer = (function() {
 		}
 	}
 	
-	function createDocument(url, contents) {
+	function createDocument(contents, url) {
+		contents = contents || '';
+		var doc;
 		if( !Device.is('webkit') && window.DOMParser ) {
 			var parser = new DOMParser();
 			doc = parser.parseFromString(contents, "text/html");
@@ -5592,12 +5667,9 @@ var Importer = (function() {
 					return Ajax.html(options).done(function(err, doc, xhr) {						
 						if( err ) return callback(err);
 						
-						if( doc.nodeType !== 9 ) doc = createDocument(src, xhr.responseText);
+						if( doc.nodeType !== 9 ) doc = createDocument(xhr.responseText, src);
 						
-						processDocument(doc, {
-							url: src
-						});
-						
+						processDocument(doc, {url: src});						
 						callback(null, doc);
 					});
 				}
@@ -5609,8 +5681,7 @@ var Importer = (function() {
 SelectorBuilder.util.createDocument = Importer.createDocument;
 SelectorBuilder.util.resolveScript = Importer.resolveScript;
 SelectorBuilder.staticfn.newDocument = function() {
-	var doc = Importer.createDocument.apply(this, arguments);
-	return SelectorBuilder(doc);
+	return Importer.createDocument.apply(this, arguments);
 };
 SelectorBuilder.staticfn.import = function(options, callback) {
 	Importer.load(options).done(function(err, doc, xhr) {
@@ -5626,42 +5697,35 @@ SelectorBuilder.fn['import'] = function(options, callback) {
 	var document = this.document;
 	
 	return this.each(function() {
-		var el = this;
-		
-		if( typeof(callback) !== 'function' ) {
-			callback = function(err, doc) {
-				if( err ) return console.error(err.message);
-				
-				if( !doc.body || !doc.body.childNodes.length ) return console.warn('body was empty', options, doc, el);
-				
-				var el = $(this);
-				if( options.append !== true ) el.empty();
-				
-				if( doc.head ) {
-					var head = doc.head;
-					var styles = $(head.querySelectorAll('style'));
-					styles.appendTo(document.head);
-					
-					var stylesheets = $(head.querySelectorAll('link[rel="stylesheet"]'));
-					stylesheets.appendTo(document.head);
-				}
-				
-				el.append(doc.body.childNodes);
-			};
-		}
+		var el = $(this);
 		
 		Importer.load(options).done(function(err, doc, xhr) {
-			if( err ) return callback.apply(el, arguments);
+			if( err && callback ) return callback.apply(el[0], arguments);
+			else if( err ) return console.error(err.message || err);
 			
-			callback.apply(el, arguments);
+			if( !doc.body || !doc.body.childNodes.length ) return console.warn('body was empty', options, doc, el);
+			
+			if( options.append !== true ) el.empty();			
+			if( doc.head ) {
+				var head = doc.head;
+				var styles = $(head.querySelectorAll('style'));
+				styles.appendTo(document.head);
+				
+				var stylesheets = $(head.querySelectorAll('link[rel="stylesheet"]'));
+				stylesheets.appendTo(document.head);
+			}
+			
+			el.append(doc.body.childNodes);
+			
+			if( callback ) callback.apply(el[0], arguments);
 			
 			if( err ) {
-				$(el).fire('importerror', {
+				el.fire('importerror', {
 					error: err,
 					xhr: xhr
 				});
 			} else {
-				$(el).fire('imported', {
+				el.fire('imported', {
 					url: options.url,
 					document: doc,
 					xhr: xhr

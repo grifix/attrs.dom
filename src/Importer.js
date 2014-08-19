@@ -293,7 +293,9 @@ var Importer = (function() {
 		}
 	}
 	
-	function createDocument(url, contents) {
+	function createDocument(contents, url) {
+		contents = contents || '';
+		var doc;
 		if( !Device.is('webkit') && window.DOMParser ) {
 			var parser = new DOMParser();
 			doc = parser.parseFromString(contents, "text/html");
@@ -360,12 +362,9 @@ var Importer = (function() {
 					return Ajax.html(options).done(function(err, doc, xhr) {						
 						if( err ) return callback(err);
 						
-						if( doc.nodeType !== 9 ) doc = createDocument(src, xhr.responseText);
+						if( doc.nodeType !== 9 ) doc = createDocument(xhr.responseText, src);
 						
-						processDocument(doc, {
-							url: src
-						});
-						
+						processDocument(doc, {url: src});						
 						callback(null, doc);
 					});
 				}
@@ -377,8 +376,7 @@ var Importer = (function() {
 SelectorBuilder.util.createDocument = Importer.createDocument;
 SelectorBuilder.util.resolveScript = Importer.resolveScript;
 SelectorBuilder.staticfn.newDocument = function() {
-	var doc = Importer.createDocument.apply(this, arguments);
-	return SelectorBuilder(doc);
+	return Importer.createDocument.apply(this, arguments);
 };
 SelectorBuilder.staticfn.import = function(options, callback) {
 	Importer.load(options).done(function(err, doc, xhr) {
@@ -394,42 +392,35 @@ SelectorBuilder.fn['import'] = function(options, callback) {
 	var document = this.document;
 	
 	return this.each(function() {
-		var el = this;
-		
-		if( typeof(callback) !== 'function' ) {
-			callback = function(err, doc) {
-				if( err ) return console.error(err.message);
-				
-				if( !doc.body || !doc.body.childNodes.length ) return console.warn('body was empty', options, doc, el);
-				
-				var el = $(this);
-				if( options.append !== true ) el.empty();
-				
-				if( doc.head ) {
-					var head = doc.head;
-					var styles = $(head.querySelectorAll('style'));
-					styles.appendTo(document.head);
-					
-					var stylesheets = $(head.querySelectorAll('link[rel="stylesheet"]'));
-					stylesheets.appendTo(document.head);
-				}
-				
-				el.append(doc.body.childNodes);
-			};
-		}
+		var el = $(this);
 		
 		Importer.load(options).done(function(err, doc, xhr) {
-			if( err ) return callback.apply(el, arguments);
+			if( err && callback ) return callback.apply(el[0], arguments);
+			else if( err ) return console.error(err.message || err);
 			
-			callback.apply(el, arguments);
+			if( !doc.body || !doc.body.childNodes.length ) return console.warn('body was empty', options, doc, el);
+			
+			if( options.append !== true ) el.empty();			
+			if( doc.head ) {
+				var head = doc.head;
+				var styles = $(head.querySelectorAll('style'));
+				styles.appendTo(document.head);
+				
+				var stylesheets = $(head.querySelectorAll('link[rel="stylesheet"]'));
+				stylesheets.appendTo(document.head);
+			}
+			
+			el.append(doc.body.childNodes);
+			
+			if( callback ) callback.apply(el[0], arguments);
 			
 			if( err ) {
-				$(el).fire('importerror', {
+				el.fire('importerror', {
 					error: err,
 					xhr: xhr
 				});
 			} else {
-				$(el).fire('imported', {
+				el.fire('imported', {
 					url: options.url,
 					document: doc,
 					xhr: xhr

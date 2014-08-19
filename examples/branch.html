@@ -18,8 +18,8 @@
 				
 				var $1 = $.branch('body');
 				var $2 = $.branch('.branch');
-				var $3 = $.newDocument();
-				var $4 = $.newDocument('<div id="slot"></div>');
+				var $3 = $.branch($.newDocument());
+				var $4 = $.branch($.newDocument('<div id="slot"></div>'));
 				
 				$1(':root').update('div#slot').html('created 1!');
 				$2(':root').update('div#slot').html('created 2!');

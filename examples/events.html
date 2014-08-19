@@ -38,6 +38,20 @@
 				console.log('event', result);
 				
 				console.log($('#slot').firethru('custom'));
+				
+				$(document).on('custom', function(e) {
+					console.log('document custom event fired', e);
+				});
+				
+				$(document).fire('custom', {key:1});
+				
+				var doc = $.newDocument();
+				console.log('doc', doc);
+				$(doc.documentElement).on('custom', function(e) {
+					console.log('newdocument custom event fired', e);
+				});
+				
+				$(doc.documentElement).fire('custom', {key:1});
 			});
 		</script>
 	</head>

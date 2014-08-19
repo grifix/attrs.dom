@@ -456,8 +456,7 @@ var SelectorBuilder = (function() {
 		function Selector(selector, criteria, single) {
 			if( !arguments.length || selector === ':root' ) selector = Selector.root;
 			
-			if( selector && selector.nodeType === 9 ) return SelectorBuilder(selector);
-			else if( selector === document || selector === window ) return Selector;
+			if( selector === window ) return Selector;
 			else if( selector !== __root__ ) return new Selection(selector, criteria, single);
 		}
 	
@@ -2530,24 +2529,26 @@ var SelectorBuilder = (function() {
 			});
 		};
 		
-		fn.load = function(options, fn) {
+		fn.load = function(options, fn, fn2) {
 			if( typeof(options) === 'string' ) options = {url:options};
 			
 			options.url = Path.join(this.document.URL || location.href, options.url);
 			options.sync = false;
-			options.cache = true;
+			
+			if( typeof(fn) === 'string' ) {
+				options.responseType = fn;
+				fn = fn2;
+			}
 			
 			var $ = this.$;
 			return this.each(function() {
 				var el = $(this);
-				Ajax.ajax(options).done(function(err, data, xhr) {
+				Ajax.ajax(options).done(function(err, data, xhr, type) {
 					if( err && typeof(fn) === 'function' ) return fn.apply(el[0], [err, data]);
-					
-					var contentType = normalizeContentType(xhr.getResponseHeader('content-type'), options.url);
-					
+										
 					var loader = el.data('loader');
 					if( typeof(fn || loader) === 'function' ) {
-						(fn || loader).apply(el[0], [err, data, contentType, options.url, xhr]);
+						(fn || loader).apply(el[0], [err, data, type, options.url, xhr]);
 					}
 					
 					if( err ) {
@@ -2559,7 +2560,8 @@ var SelectorBuilder = (function() {
 						el.fire('load', {
 							url: options.url,
 							data: data,
-							contentType: contentType,
+							parseType: type,
+							contentType: xhr.getResponseHeader('Content-Type'),
 							xhr: xhr
 						});
 					}
